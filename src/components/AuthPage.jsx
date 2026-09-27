@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { supabase } from '../lib/supabaseClient'
+import { RankdSymbol } from './RankdLogo'
 
 const SECTIONS = [
   'A1','A2','B1','B2','C1','C2','D1','D2','E1','E2',
@@ -320,9 +321,7 @@ export default function AuthPage() {
       {/* Left brand panel — desktop only */}
       <div className="auth-brand-panel">
         <div className="auth-brand-logo">
-          <svg width="32" height="32" viewBox="0 0 32 32" fill="none">
-            <polygon points="0,32 32,0 32,32" fill="var(--green)" opacity="0.9"/>
-          </svg>
+          <RankdSymbol size={32} />
           <span className="auth-brand-name">rankd</span>
         </div>
         <p className="auth-brand-tagline">know your place.</p>
@@ -340,9 +339,7 @@ export default function AuthPage() {
 
           {/* Mobile logo */}
           <div className="auth-mobile-logo">
-            <svg width="24" height="24" viewBox="0 0 32 32" fill="none">
-              <polygon points="0,32 32,0 32,32" fill="var(--green)"/>
-            </svg>
+            <RankdSymbol size={24} />
             <span>rankd</span>
           </div>
 
