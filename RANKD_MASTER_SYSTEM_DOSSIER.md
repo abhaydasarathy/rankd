@@ -56,14 +56,23 @@
   - Redirect URLs: `https://rankdpro.vercel.app/**`
 - **Supabase Storage Bucket**: `placement-proofs` (configured for public read with folder-level write protection by user UUID).
 
-### 2.2 Custom Email/Password Authentication Architecture
-Google OAuth and static demo access buttons have been completely removed and replaced with a zero-hardcoding custom authentication system built on Supabase Auth:
+### 2.2 Custom Email/Password Authentication Architecture & Apple-Grade Micro-Interactions
+Google OAuth and static demo access buttons have been completely removed and replaced with a zero-hardcoding custom authentication system built on Supabase Auth, engineered with quiet, tactile Apple/Linear-grade micro-interactions:
 
-#### A. Role Tabs & Mode Switching
-- **Top Role Tabs**: Instant switching between **Student** and **Faculty** roles. Switching roles or modes (`Sign In` ↔ `Register`) completely clears all form states, inputs, and validation errors.
+#### A. Role Tabs, Sliding Pill Indicator & Ambient Architecture
+- **Top Role Tabs & Sliding Indicator**: Instant role switching between **Student** and **Faculty**. Switching roles or modes (`Sign In` ↔ `Register`) completely clears all form states, inputs, and validation errors. Features an Apple-like sliding pill background indicator (`.auth-tab-slider`) that translates horizontally (`transform: translateX(0% | 100%)`) over `220ms` with `cubic-bezier(0.16, 1, 0.3, 1)`, providing a physical segmented control feel rather than abrupt border toggles.
+- **Static Ambient Depth Architecture**:
+  - The login canvas (`.auth-page`) is anchored on `#080C10` with subtle static green radial gradients (`radial-gradient(ellipse at 15% 50%, rgba(34,197,94,0.07) 0%, transparent 60%)`) and an ultra-fine 40px grid pattern masked with a radial vignette. All moving orbs, floating particles, and pulsing shimmers are omitted to maintain an authoritative, quiet, enterprise aesthetic.
+- **Official Brand Mark Integration (`RankdSymbol`)**:
+  - Both the left desktop panel and the mobile header feature the official canonical `RankdSymbol` geometric SVG (`polygon points="306 0, 0 190.5, 306 381"` with `fill="#22C55E"`), eliminating any mock right-angle triangles and unifying the brand asset across the entire portal.
 - **Two-Column Responsive Layout**:
-  - **Left Brand Panel** (desktop `min-width: 900px`): `rankd` logo mark, wordmark, tagline ("know your place."), institutional heading ("SRM Institute of Science and Technology, KTR Campus"), and decorative tier badges (Super Dream / Dream / Eligible).
-  - **Right Auth Card**: Responsive 440px card adhering strictly to theme CSS custom properties (`var(--bg-card)`, `var(--border)`, `var(--radius-xl)`).
+  - **Left Brand Panel** (desktop `min-width: 900px`): Official `RankdSymbol` mark, clean wordmark, tagline ("know your place."), and institutional placement header ("SRM Institute of Science and Technology, KTR Campus"). Legacy decorative tier badges (Super Dream / Dream / Eligible) have been completely removed for an uncluttered, premium editorial layout.
+  - **Right Auth Card**: Responsive 440px glass card adhering strictly to theme CSS custom properties (`var(--bg-card)`, `var(--border)`, `var(--radius-xl)`).
+- **Tactile Feedback & Real Success State**:
+  - **Button Press Physics**: The primary CTA button features an active press state (`transform: scale(0.985)` over `70ms ease-out`) and a soft glowing hover elevation.
+  - **Authentic Success Transition**: Upon successful Supabase authentication, the submit button transitions into a verified state displaying a green checkmark SVG and `✓ Signed in`, waiting 300ms before routing to give the user positive tactile confirmation.
+  - **Micro-Shake Error Feedback**: Form validation and Supabase auth errors trigger a subtle 3px horizontal oscillation (`subtleShake`, 240ms) without jarring red flashes.
+  - **Accessibility Compliance**: Built-in `@media (prefers-reduced-motion: reduce)` immediately zeroes all transition delays and disables keyframe animations.
 
 #### B. Student Registration Workflow
 - **Fields (in strict sequence)**:
@@ -724,6 +733,17 @@ All animations are hardware-accelerated, scoped to UI elements, and automaticall
    - The sun/moon toggle rotates 180° with opacity fade on switch.
 8. **Slide-Over Drawer & Backdrop Blur (`.category-drawer`)**:
    - The 480px drawer glides in from `translateX(100%)` to `translateX(0)` with a `300ms cubic-bezier(0.4, 0, 0.2, 1)` transition, accompanied by a 40% backdrop blur overlay.
+9. **Apple-Grade Auth Micro-Interactions & Tactile Physics**:
+   - **Sliding Segmented Control (`.auth-tab-slider`)**:
+     A physical indicator tab translating between 0% and 100% width with `cubic-bezier(0.16, 1, 0.3, 1)` over `220ms`.
+   - **Tactile Button Compression (`:active scale(0.985)`)**:
+     Active button click compresses subtly with immediate recovery (`70ms`), paired with a soft ambient green glow (`box-shadow: 0 4px 20px rgba(34, 197, 94, 0.3)`).
+   - **Subtle Error Micro-Shake (`@keyframes subtleShake`)**:
+     Authentication failure displaces the card by `±3px` over `240ms` (`cubic-bezier(0.36, 0.07, 0.19, 0.97)`), mimicking physical resistance without harsh flashes.
+   - **Coordinated Entrance Orchestration**:
+     The left branding panel settles in over `500ms` with staggered copy reveals (`40ms`, `100ms`, `160ms`), while the authentication card settles into position over `550ms` with a soft `300ms` form content glide.
+   - **Reduced Motion Support**:
+     All micro-animations and transforms are automatically disabled under `@media (prefers-reduced-motion: reduce)`.
 
 ---
 
@@ -1125,6 +1145,8 @@ A thorough technical justification for why **Supabase (PostgreSQL)** is strictly
 | **GitHub Repository Version Control & Zero-Leakage Git Ignore** | Local project unversioned on GitHub; high risk of committing sensitive `.env` Supabase credentials or `.agents/` MCP personal access tokens | Repository had no Git tracking and incomplete `.gitignore` patterns | Hardened `.gitignore` to explicitly reject all `.env*`, `.agents/*`, `node_modules/`, `dist/`, and `supabase/.temp/`. Initialized Git, created clean root commit `feat: rankd v1 — SRMIST placement ranking portal` with 88 sanitized files, configured origin to `https://github.com/abhaydasarathy/rankd.git`, and pushed cleanly to tracking branch `main`. |
 | **Vercel Production Cloud Deployment & SPA Wildcard Rewrites** | Direct navigation or browser page refreshes on subroutes (`/overview`, `/my-metrics`, `/faculty/pending`) throw HTTP 404 on static hosts | Client-side Single Page Application (SPA) missing server-side rewrite rules | Engineered [vercel.json](file:///c:/Users/ABHAY%20R%20DASARATHY/Downloads/inhouseproject1/vercel.json) with SPA catch-all rewrite (`/(.*) -> /index.html`), immutable asset caching, and security headers (`X-Frame-Options: DENY`, `X-Content-Type-Options: nosniff`, `Referrer-Policy: strict-origin-when-cross-origin`). Connected GitHub repository to Vercel and deployed live production build at `https://rankdpro.vercel.app` with `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY`. Verified all direct client routes return HTTP 200 OK. |
 | **Supabase Auth Production Domain Provisioning** | Supabase rejects login sessions and OAuth callbacks coming from newly deployed Vercel domain | Supabase Auth URL whitelist restricted to localhost | Configured Supabase Auth Project Settings (`edrnoswnadjcsftekplu`): updated Site URL to `https://rankdpro.vercel.app` and added Redirect URL `https://rankdpro.vercel.app/**`, enabling seamless authentication across all student and faculty portal routes in production. |
+| **Official Brand Mark Unification (`RankdSymbol`)** | Placeholder 32x32 right-angle ramp triangle rendered on auth page | Disconnected branding from the main platform's official logo | Replaced the mock right-angle polygon in `AuthPage.jsx` with the canonical geometric `RankdSymbol` (`polygon points="306 0, 0 190.5, 306 381"` with `fill="#22C55E"`), unifying the brand identity across both authentication and authenticated application views. |
+| **Apple-Grade Auth Micro-Interactions & Static Depth** | Moving orb animations, floating tier badges, abrupt tab switching, and lack of tactile button feedback | Visual noise and lack of micro-interaction polish on entry portal | Re-engineered `AuthPage.jsx` and `AuthPage.css` with subtle Apple/Linear-grade micro-interactions: static ambient background depth (`#080C10` with subtle static grid vignette; removed moving/pulsing orbs), removed redundant legacy tier pills, engineered sliding segmented role tab indicator (`.auth-tab-slider`), physical tactile button press (`scale(0.985)`), real `✓ Signed in` state transition with SVG checkmark, subtle 3px horizontal error shake (`subtleShake`), coordinated entrance orchestration, and full `prefers-reduced-motion` accessibility support. |
 
 ---
 
@@ -1169,6 +1191,12 @@ As of today, the system is fully operational and comprehensively verified:
     - **Universal SPA Rewrite Engine**: Configured in `vercel.json` (`/(.*) -> /index.html`). Direct URL navigation and hard browser refreshes across all routes (`/auth`, `/overview`, `/my-metrics`, `/leaderboard`, `/faculty/pending`) return HTTP 200 with zero 404s.
     - **Cloud Authentication Whitelist**: Supabase project `edrnoswnadjcsftekplu` configured with Site URL `https://rankdpro.vercel.app` and Redirect URLs `https://rankdpro.vercel.app/**`.
     - **Zero Credential Leakage**: Git history strictly sanitized with 100% of `.env` files and `.agents/` tokens excluded.
+12. **Apple-Grade Authentication & Micro-Interaction Architecture**:
+    - **Visual Hierarchy & Static Depth**: Canvas grounded on `#080C10` with static radial emerald accents and an ultra-fine 40px grid vignette. Moving particles and pulsing animations are eliminated to ensure an authoritative, distraction-free environment.
+    - **Unified Brand Geometry**: Features the official `RankdSymbol` SVG (`polygon points="306 0, 0 190.5, 306 381"`) in both desktop and mobile viewports.
+    - **Segmented Role Slider**: Seamless sliding indicator (`.auth-tab-slider`) translating between Student and Faculty tabs with hardware-accelerated transforms (`220ms cubic-bezier(0.16, 1, 0.3, 1)`).
+    - **Tactile Feedback & Error Physics**: Primary CTA features a physical `scale(0.985)` compression on click, authentic `✓ Signed in` state transition with checkmark upon Supabase authentication, and a subtle 3px horizontal micro-shake (`subtleShake`) for failed validation.
+    - **Motion Accessibility**: Complete `@media (prefers-reduced-motion: reduce)` coverage zeroing transitions and disabling all keyframe motion.
 
 
 ---
