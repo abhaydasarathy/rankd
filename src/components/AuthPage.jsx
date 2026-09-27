@@ -46,6 +46,7 @@ export default function AuthPage() {
   const [form, setForm]       = useState({})
   const [errors, setErrors]   = useState({})
   const [loading, setLoading] = useState(false)
+  const [isSuccess, setIsSuccess] = useState(false)
   const [globalError, setGlobalError] = useState('')
 
   function setField(key, val) {
@@ -59,6 +60,7 @@ export default function AuthPage() {
     setForm({})
     setErrors({})
     setGlobalError('')
+    setIsSuccess(false)
   }
 
   function switchMode(newMode) {
@@ -66,6 +68,7 @@ export default function AuthPage() {
     setForm({})
     setErrors({})
     setGlobalError('')
+    setIsSuccess(false)
   }
 
   // ── Validation helpers ────────────────────────────────────
@@ -219,6 +222,7 @@ export default function AuthPage() {
       }
 
       // Success — navigate to appropriate portal
+      setIsSuccess(true)
       navigate(role === 'faculty' ? '/faculty/pending' : '/overview')
 
     } catch (err) {
@@ -301,6 +305,7 @@ export default function AuthPage() {
         .eq('id', data.user.id)
         .maybeSingle()
 
+      setIsSuccess(true)
       if (profile?.role === 'faculty') {
         navigate('/faculty/pending')
       } else {
@@ -327,11 +332,6 @@ export default function AuthPage() {
         </div>
         <p className="auth-brand-tagline">know your place.</p>
         <p className="auth-brand-institution">SRM Institute of Science and Technology<br/>KTR Campus</p>
-        <div className="auth-brand-tiers">
-          <span className="auth-tier-pill auth-tier--super">Super Dream</span>
-          <span className="auth-tier-pill auth-tier--dream">Dream</span>
-          <span className="auth-tier-pill auth-tier--eligible">Eligible</span>
-        </div>
       </div>
 
       {/* Right auth card */}
@@ -355,6 +355,12 @@ export default function AuthPage() {
 
           {/* Role tabs */}
           <div className="auth-role-tabs">
+            <div
+              className="auth-tab-slider"
+              style={{
+                transform: role === 'faculty' ? 'translateX(100%)' : 'translateX(0%)',
+              }}
+            />
             <button
               className={`auth-tab ${role === 'student' ? 'auth-tab--active' : ''}`}
               onClick={() => switchRole('student')}
@@ -378,7 +384,7 @@ export default function AuthPage() {
 
           {/* ── REGISTER FORM ── */}
           {mode === 'register' && (
-            <div className="auth-form">
+            <div key={`register-${role}`} className="auth-form auth-form-fade">
 
               <Field
                 id="fullName" label="Full Name *"
@@ -457,10 +463,16 @@ export default function AuthPage() {
               <button
                 className="auth-btn-primary"
                 onClick={handleRegister}
-                disabled={loading}
+                disabled={loading || isSuccess}
                 type="button"
               >
-                {loading ? <><span className="auth-spinner" /> Creating account...</> : 'Create Account'}
+                {loading ? (
+                  <><span className="auth-spinner" /> Creating account...</>
+                ) : isSuccess ? (
+                  '✓ Account created'
+                ) : (
+                  'Create Account'
+                )}
               </button>
 
               <p className="auth-mode-switch">
@@ -474,7 +486,7 @@ export default function AuthPage() {
 
           {/* ── LOGIN FORM ── */}
           {mode === 'login' && (
-            <div className="auth-form">
+            <div key={`login-${role}`} className="auth-form auth-form-fade">
 
               <Field
                 id="identifier"
@@ -499,10 +511,16 @@ export default function AuthPage() {
               <button
                 className="auth-btn-primary"
                 onClick={handleLogin}
-                disabled={loading}
+                disabled={loading || isSuccess}
                 type="button"
               >
-                {loading ? <><span className="auth-spinner" /> Signing in...</> : 'Sign In'}
+                {loading ? (
+                  <><span className="auth-spinner" /> Signing in...</>
+                ) : isSuccess ? (
+                  '✓ Signed in'
+                ) : (
+                  'Sign In'
+                )}
               </button>
 
               <p className="auth-mode-switch">
