@@ -208,6 +208,7 @@ export default function MyMetrics({
                 style={{
                   backgroundColor: isActive ? 'var(--sidebar-active-bg)' : 'transparent',
                   color: isActive ? 'var(--sidebar-active-text)' : 'inherit',
+                  border: isActive ? '1px solid var(--green-border)' : '1px solid transparent',
                 }}
               >
                 {label} ({count})

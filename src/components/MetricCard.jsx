@@ -180,6 +180,7 @@ export default function MetricCard({
               style={{
                 backgroundColor: 'var(--green-light)',
                 color: 'var(--green-text)',
+                border: '1px solid var(--green-border)',
                 borderRadius: '4px',
                 padding: '2px 8px',
                 fontSize: '11px',
@@ -196,6 +197,7 @@ export default function MetricCard({
               style={{
                 backgroundColor: 'var(--amber-light)',
                 color: 'var(--amber-text)',
+                border: '1px solid var(--amber-border)',
                 borderRadius: '4px',
                 padding: '2px 8px',
                 fontSize: '11px',
@@ -212,6 +214,7 @@ export default function MetricCard({
               style={{
                 backgroundColor: 'var(--gray-badge-bg)',
                 color: 'var(--gray-badge-text)',
+                border: '1px solid var(--border)',
                 borderRadius: '4px',
                 padding: '2px 8px',
                 fontSize: '11px',

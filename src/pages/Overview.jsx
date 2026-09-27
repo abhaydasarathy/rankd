@@ -155,6 +155,7 @@ export default function Overview({
               style={{
                 backgroundColor: 'var(--green-light)',
                 color: 'var(--green-text)',
+                border: '1px solid var(--green-border)',
                 borderRadius: '20px',
                 padding: '4px 14px',
                 fontSize: '13px',
@@ -257,6 +258,7 @@ export default function Overview({
                   style={{
                     backgroundColor: 'var(--green-light)',
                     color: 'var(--green-text)',
+                    border: '1px solid var(--green-border)',
                     borderRadius: '20px',
                     padding: '2px 10px',
                     fontSize: '12px',

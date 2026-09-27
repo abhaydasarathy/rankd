@@ -164,6 +164,7 @@ export default function TopNav({
                 style={{
                   backgroundColor: 'var(--green-light)',
                   color: 'var(--green-text)',
+                  border: '1px solid var(--green-border)',
                 }}
               >
                 {initials}

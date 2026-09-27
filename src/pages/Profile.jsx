@@ -98,7 +98,7 @@ function FacultyProfileView({ profile }) {
             style={{
               backgroundColor: 'var(--green-light)',
               color: 'var(--green-text)',
-              borderColor: 'var(--border)',
+              borderColor: 'var(--green-border)',
             }}
           >
             {initials}
@@ -114,7 +114,7 @@ function FacultyProfileView({ profile }) {
                 style={{
                   backgroundColor: 'rgba(16, 185, 129, 0.15)',
                   color: 'var(--green-text)',
-                  borderColor: 'rgba(16, 185, 129, 0.3)',
+                  borderColor: 'var(--green-border)',
                 }}
               >
                 <ShieldCheck size={13} />
@@ -336,7 +336,7 @@ export default function Profile({
             style={{
               backgroundColor: 'var(--green-light)',
               color: 'var(--green-text)',
-              borderColor: 'var(--border)',
+              borderColor: 'var(--green-border)',
             }}
           >
             {name[0]?.toUpperCase() || 'S'}
@@ -354,6 +354,7 @@ export default function Profile({
             style={{
               backgroundColor: 'var(--green-light)',
               color: 'var(--green-text)',
+              border: '1px solid var(--green-border)',
               padding: '4px 12px',
               fontSize: '11px',
               fontWeight: 600,

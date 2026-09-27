@@ -151,7 +151,7 @@ export default function Leaderboard({
           {/* Rank 2 (Silver) */}
           {top2 && (
             <div
-              className="p-5 border flex flex-col items-center text-center transition-transform hover:-translate-y-1"
+              className="p-5 border flex flex-col items-center text-center transition-transform hover:-translate-y-0.5"
               style={{
                 backgroundColor: 'var(--bg-card)',
                 borderColor: 'var(--border)',
@@ -164,7 +164,7 @@ export default function Leaderboard({
               <div className="w-9 h-9 rounded-full flex items-center justify-center mb-2" style={{ backgroundColor: 'rgba(148, 163, 184, 0.15)' }}>
                 <Medal size={20} className="text-slate-400" />
               </div>
-              <span className="rank-number rank-2 rank-shine-top3 text-sm">#2 Silver</span>
+              <span className="rank-number rank-2 text-sm font-semibold text-slate-300">#2 Silver</span>
               <h3 className="font-semibold text-sm mt-1 mb-0.5" style={{ color: 'var(--text-primary)' }}>
                 {top2.name || top2.full_name}
               </h3>
@@ -180,15 +180,15 @@ export default function Leaderboard({
           {/* Rank 1 (Gold - Hero center, larger, green accent) */}
           {top1 && (
             <div
-              className="p-6 border flex flex-col items-center text-center relative transition-transform hover:-translate-y-1 shadow-lg"
+              className="p-6 border flex flex-col items-center text-center relative transition-transform hover:-translate-y-0.5 shadow-md"
               style={{
                 backgroundColor: 'var(--bg-card)',
-                borderColor: 'rgba(34, 197, 94, 0.4)',
+                borderColor: 'rgba(34, 197, 94, 0.3)',
                 borderRadius: 'var(--radius-xl, 20px)',
                 animation: 'rowSlideIn 300ms ease-out forwards',
                 animationDelay: '0ms',
                 order: 2,
-                boxShadow: '0 4px 20px rgba(34, 197, 94, 0.1)',
+                boxShadow: '0 4px 20px rgba(0, 0, 0, 0.25)',
               }}
             >
               <div
@@ -200,7 +200,7 @@ export default function Leaderboard({
               <div className="w-11 h-11 rounded-full flex items-center justify-center mb-2" style={{ backgroundColor: 'rgba(245, 158, 11, 0.15)' }}>
                 <Trophy size={24} className="text-amber-400" />
               </div>
-              <span className="rank-number rank-1 rank-shine-top3 text-base">#1 Gold</span>
+              <span className="rank-number rank-1 text-base font-bold text-amber-400">#1 Gold</span>
               <h3 className="font-bold text-base mt-1 mb-0.5" style={{ color: 'var(--text-primary)' }}>
                 {top1.name || top1.full_name}
               </h3>
@@ -216,7 +216,7 @@ export default function Leaderboard({
           {/* Rank 3 (Bronze) */}
           {top3 && (
             <div
-              className="p-5 border flex flex-col items-center text-center transition-transform hover:-translate-y-1"
+              className="p-5 border flex flex-col items-center text-center transition-transform hover:-translate-y-0.5"
               style={{
                 backgroundColor: 'var(--bg-card)',
                 borderColor: 'var(--border)',
@@ -229,7 +229,7 @@ export default function Leaderboard({
               <div className="w-9 h-9 rounded-full flex items-center justify-center mb-2" style={{ backgroundColor: 'rgba(205, 124, 74, 0.15)' }}>
                 <Award size={20} style={{ color: '#CD7C4A' }} />
               </div>
-              <span className="rank-number rank-3 rank-shine-top3 text-sm">#3 Bronze</span>
+              <span className="rank-number rank-3 text-sm font-semibold text-amber-600">#3 Bronze</span>
               <h3 className="font-semibold text-sm mt-1 mb-0.5" style={{ color: 'var(--text-primary)' }}>
                 {top3.name || top3.full_name}
               </h3>
