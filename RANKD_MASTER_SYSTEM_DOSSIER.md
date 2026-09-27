@@ -40,13 +40,20 @@
 
 ## 2. SENSITIVE CONFIGURATIONS, CREDENTIALS & SECRETS
 
-### 2.1 Supabase Project Infrastructure
+### 2.1 Supabase & Production Infrastructure
+- **Production Live URL (Vercel)**: `https://rankdpro.vercel.app`
+- **GitHub Repository**: `https://github.com/abhaydasarathy/rankd` (Tracking branch: `main`)
+- **Vercel Project Configuration**: Framework: `Vite`, Build: `npm run build`, Output: `dist`, Rewrites: SPA `/(.*) -> /index.html` via `vercel.json`
 - **Supabase Project URL**: `https://edrnoswnadjcsftekplu.supabase.co`
 - **Supabase Project Reference ID**: `edrnoswnadjcsftekplu`
-- **Supabase Anon / Public API Key**:
+- **Supabase Anon Public API Key (JWT Canonical)**:
+  ```text
+  eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVkcm5vc3duYWRqY3NmdGVrcGx1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODk3OTY5NDEsImV4cCI6MjEwNTM3Mjk0MX0.Zt75fUek_MDiFGYrZKfmST5ww_eXvB5yWP9bnd6vIDU
   ```
-  sb_publishable_ftDN7kSv57CKxDF4HwjcDg_VYchfVF6
-  ```
+- **Supabase Publishable Key**: `sb_publishable_ftDN7kSv57CKxDF4HwjcDg_VYchfVF6`
+- **Supabase Auth URL Configuration**:
+  - Site URL: `https://rankdpro.vercel.app`
+  - Redirect URLs: `https://rankdpro.vercel.app/**`
 - **Supabase Storage Bucket**: `placement-proofs` (configured for public read with folder-level write protection by user UUID).
 
 ### 2.2 Custom Email/Password Authentication Architecture
@@ -1115,6 +1122,9 @@ A thorough technical justification for why **Supabase (PostgreSQL)** is strictly
 | **Auth Input Focus & Cursor Loss on Keystrokes** | Cursor disappeared after typing each individual character in registration and login inputs, requiring clicking the input again | `Field` helper component was defined *inside* `AuthPage()` render function, causing React to treat it as a new component type on every state update, unmounting the DOM `<input>` on every keystroke | Extracted `Field` to top-level module scope above `AuthPage`. React now maintains stable component identity and in-place DOM updates, keeping cursor position and focus intact without losing keystrokes. |
 | **Section-Based Faculty-Student Mapping** | Faculty saw all students across the entire institution or none at all instead of students who chose the same section | `getFacultyStudents`, `getFacultyPendingSubmissions`, and `Sidebar.jsx` fell back to unconstrained university-wide queries when `faculty_student_mappings` was absent | Implemented `normalizeSection` and `isSameSection` across `facultyService.js`, `Sidebar.jsx`, and `App.jsx`. Faculty coordinators now dynamically map to all and only students in their coordinating section (e.g. `P1`, `A1`, etc., with `All` option for campus-wide coordinators). Added interactive section switcher on `FacultyProfileView` and section status pills across Pending Queue and My Students. |
 | **Faculty Score Display & 11-Category Read-Only Metrics View** | Faculty portal displayed `0.0 / 100` for students in `FacultyStudentList` and `FacultyStudentInspect`; faculty had no way to view every student's metrics across all 11 categories like students do in "My Metrics" | `FacultyStudentList` and `FacultyStudentInspect` relied solely on the Supabase SQL view `student_placement_scores` which returned null/zero for unaggregated or un-triggered records, and `getFacultyStudents` omitted `tenth_pct` and `twelfth_pct`; no read-only metrics view existed for faculty | 1. Integrated `calculateTotalScore` dynamically across `FacultyStudentList.jsx` and `FacultyStudentInspect.jsx` using `tenth_pct`, `twelfth_pct`, `cgpa`, and verified submissions.<br/>2. Updated `getFacultyStudents` in `facultyService.js` to select `tenth_pct` and `twelfth_pct`.<br/>3. Added a dedicated **"📊 View Metrics"** button directly next to each student's score in `FacultyStudentList.jsx` table: `[ 24.5 / 100 ] [ 📊 View Metrics ]`.<br/>4. Built the full **Read-Only Student Metrics Modal** in `FacultyStudentList.jsx` with security lock notice, 11-category cards with progress bars, verified details, and clickable proof links (`📄 View Proof ↗`).<br/>5. Upgraded `FacultyStudentInspect.jsx` to a **Dual-Mode Evaluation Interface** (`[ 📊 Student Metrics (11 Categories) ]` and `[ 📋 Claims Ledger & Verification ]`), with left-column Donut and Academic Foundation cards accurately displaying verified placement scores.<br/>6. Strict security invariant: Faculty cannot modify marks directly from the metrics view; modifications and mark awards are processed strictly when the student requests/submits an activity and the faculty verifies and awards that change in the ledger / pending queue. |
+| **GitHub Repository Version Control & Zero-Leakage Git Ignore** | Local project unversioned on GitHub; high risk of committing sensitive `.env` Supabase credentials or `.agents/` MCP personal access tokens | Repository had no Git tracking and incomplete `.gitignore` patterns | Hardened `.gitignore` to explicitly reject all `.env*`, `.agents/*`, `node_modules/`, `dist/`, and `supabase/.temp/`. Initialized Git, created clean root commit `feat: rankd v1 — SRMIST placement ranking portal` with 88 sanitized files, configured origin to `https://github.com/abhaydasarathy/rankd.git`, and pushed cleanly to tracking branch `main`. |
+| **Vercel Production Cloud Deployment & SPA Wildcard Rewrites** | Direct navigation or browser page refreshes on subroutes (`/overview`, `/my-metrics`, `/faculty/pending`) throw HTTP 404 on static hosts | Client-side Single Page Application (SPA) missing server-side rewrite rules | Engineered [vercel.json](file:///c:/Users/ABHAY%20R%20DASARATHY/Downloads/inhouseproject1/vercel.json) with SPA catch-all rewrite (`/(.*) -> /index.html`), immutable asset caching, and security headers (`X-Frame-Options: DENY`, `X-Content-Type-Options: nosniff`, `Referrer-Policy: strict-origin-when-cross-origin`). Connected GitHub repository to Vercel and deployed live production build at `https://rankdpro.vercel.app` with `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY`. Verified all direct client routes return HTTP 200 OK. |
+| **Supabase Auth Production Domain Provisioning** | Supabase rejects login sessions and OAuth callbacks coming from newly deployed Vercel domain | Supabase Auth URL whitelist restricted to localhost | Configured Supabase Auth Project Settings (`edrnoswnadjcsftekplu`): updated Site URL to `https://rankdpro.vercel.app` and added Redirect URL `https://rankdpro.vercel.app/**`, enabling seamless authentication across all student and faculty portal routes in production. |
 
 ---
 
@@ -1153,6 +1163,12 @@ As of today, the system is fully operational and comprehensively verified:
     - Every student in the roster features a **"📊 View Metrics"** button next to their score in the table.
     - Interactive 11-category read-only metrics modal in `FacultyStudentList` and dual-mode interface in `FacultyStudentInspect` allow coordinators to inspect all 11 criteria, category progress bars, verified details, and supporting proof documents (`📄 View Proof ↗`).
     - **Read-Only Security Guard**: Faculty can never edit marks directly from the metrics view. Modifications and mark awards require a student submission/request and are reviewed and awarded by faculty through the Pending Queue or Claims Ledger.
+11. **Production Cloud Deployment & Zero-404 SPA Routing (Vercel)**:
+    - **Live Production URL**: `https://rankdpro.vercel.app`
+    - **Continuous Delivery**: Connected to GitHub repository `https://github.com/abhaydasarathy/rankd` on branch `main`. Every push triggers an automated production build and deployment.
+    - **Universal SPA Rewrite Engine**: Configured in `vercel.json` (`/(.*) -> /index.html`). Direct URL navigation and hard browser refreshes across all routes (`/auth`, `/overview`, `/my-metrics`, `/leaderboard`, `/faculty/pending`) return HTTP 200 with zero 404s.
+    - **Cloud Authentication Whitelist**: Supabase project `edrnoswnadjcsftekplu` configured with Site URL `https://rankdpro.vercel.app` and Redirect URLs `https://rankdpro.vercel.app/**`.
+    - **Zero Credential Leakage**: Git history strictly sanitized with 100% of `.env` files and `.agents/` tokens excluded.
 
 
 ---
