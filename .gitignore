@@ -1,0 +1,25 @@
+# Environment and MCP Config
+.env
+.env.local
+.env.production
+.env.*.local
+.agents/
+.agents/*
+
+# Dependencies and Builds
+node_modules/
+dist/
+dist-ssr/
+*.local
+supabase/.temp/
+
+# Editor directories and files
+.vscode/*
+!.vscode/extensions.json
+.idea
+.DS_Store
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
