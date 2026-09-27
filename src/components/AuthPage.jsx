@@ -320,6 +320,7 @@ export default function AuthPage() {
 
       {/* Left brand panel — desktop only */}
       <div className="auth-brand-panel">
+        <div className="auth-brand-grid" />
         <div className="auth-brand-logo">
           <RankdSymbol size={32} />
           <span className="auth-brand-name">rankd</span>
