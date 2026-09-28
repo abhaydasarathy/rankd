@@ -8,7 +8,7 @@ export function AuthProvider({ children }) {
   const [profile, setProfile] = useState(null);
   const [loading, setLoading] = useState(true);
 
-  const fetchProfile = useCallback(async (userId) => {
+  const fetchProfile = useCallback(async (userId, currentUser = null) => {
     try {
       const { data, error } = await supabase
         .from('profiles')
@@ -18,21 +18,87 @@ export function AuthProvider({ children }) {
 
       if (error) {
         console.warn('Error fetching profile:', error.message);
-        return null;
       }
       
       if (data) {
-        // Normalize name & batch properties
+        // Normalize name & batch properties without generic fallbacks
+        const fullName = data.full_name || data.name || currentUser?.user_metadata?.full_name || currentUser?.user_metadata?.name || '';
+        const firstName = data.name && data.name !== 'Student' && data.name !== 'User'
+          ? data.name
+          : (fullName ? fullName.split(' ')[0] : 'User');
+
         const normalized = {
           ...data,
-          name: data.name || data.full_name || 'User',
-          full_name: data.full_name || data.name || 'User',
+          name: firstName,
+          full_name: fullName || firstName,
           batch: data.batch || data.batch_year || '2024–2028',
           batch_year: data.batch_year || data.batch || '2024–2028',
         };
         setProfile(normalized);
         return normalized;
       }
+
+      if (!data && currentUser) {
+        // Self-heal: profile row missing in public.profiles. Insert it from auth user metadata.
+        const meta = currentUser.user_metadata || {};
+        const rawFullName = meta.full_name || meta.name || currentUser.email?.split('@')[0] || '';
+        const fullName = rawFullName.trim();
+        const firstName = fullName.split(' ')[0] || fullName || 'User';
+        const regNo = (meta.reg_no || '').toUpperCase().trim();
+        const role = meta.role || 'student';
+
+        const healPayload = {
+          id: userId,
+          email: currentUser.email,
+          name: firstName,
+          full_name: fullName || firstName,
+          reg_no: regNo || (role === 'student' ? 'RA2411003010979' : 'FAC-COORD'),
+          role: role,
+          department: role === 'student' ? (meta.department || 'CSE Core') : 'Faculty',
+          programme: role === 'student' ? 'B.Tech' : 'Faculty',
+          section: meta.section ? String(meta.section).replace(/^Section\s*/i, '') : 'P1',
+          batch: '2024 - 2028',
+          batch_year: '2024 - 2028',
+        };
+
+        try {
+          const { data: healedData, error: healErr } = await supabase
+            .from('profiles')
+            .insert(healPayload)
+            .select();
+
+          if (!healErr && healedData && healedData[0]) {
+            const normalized = {
+              ...healedData[0],
+              name: healedData[0].name || firstName,
+              full_name: healedData[0].full_name || fullName,
+              batch: healedData[0].batch || '2024–2028',
+              batch_year: healedData[0].batch_year || '2024–2028',
+            };
+            setProfile(normalized);
+            return normalized;
+          }
+        } catch (hErr) {
+          console.warn('Profile self-healing notice:', hErr);
+        }
+
+        const fallbackProfile = {
+          id: userId,
+          email: currentUser.email,
+          name: firstName,
+          full_name: fullName || firstName,
+          reg_no: regNo,
+          role: role,
+          department: meta.department || 'CSE Core',
+          programme: role === 'student' ? 'B.Tech' : 'Faculty',
+          section: meta.section || 'P1',
+          batch: '2024–2028',
+          batch_year: '2024–2028',
+        };
+        setProfile(fallbackProfile);
+        return fallbackProfile;
+      }
+
       return null;
     } catch (err) {
       console.warn('Profile fetch exception:', err);
@@ -48,7 +114,7 @@ export function AuthProvider({ children }) {
     }
 
     setUser(currentUser);
-    await fetchProfile(currentUser.id);
+    await fetchProfile(currentUser.id, currentUser);
   }, [fetchProfile]);
 
   useEffect(() => {

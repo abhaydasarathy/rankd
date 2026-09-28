@@ -135,11 +135,15 @@ export async function upsertStudentSubmission({
   studentId, categoryId, title, details, proofUrl, calculatedMarks
 }) {
   const normCat = normalizeCategoryId(categoryId);
-  // Step 1: Cancel or delete any existing PENDING submission for this category
+  // Step 1: Supersede existing PENDING for this category
   try {
     const { error: cancelError } = await supabase
       .from('student_submissions')
-      .update({ status: 'REJECTED', verifier_notes: 'Superseded by new submission' })
+      .update({
+        status: 'REJECTED',
+        verifier_notes: 'Superseded by new submission',
+        updated_at: new Date().toISOString()
+      })
       .eq('student_id', studentId)
       .eq('category_id', normCat)
       .eq('status', 'PENDING');
@@ -162,7 +166,9 @@ export async function upsertStudentSubmission({
     finalDetails.calculated_marks = calculatedMarks;
   }
 
-  // Step 2: Insert the new PENDING submission
+  const marks = calculatedMarks !== undefined ? Number(calculatedMarks) : Number(finalDetails.calculated_marks || 0);
+
+  // Step 2: Insert new PENDING submission
   const { data, error } = await supabase
     .from('student_submissions')
     .insert({
@@ -171,19 +177,18 @@ export async function upsertStudentSubmission({
       title: title || `${normCat} submission`,
       details: finalDetails,
       proof_url: proofUrl || null,
-      awarded_marks: calculatedMarks !== undefined ? Number(calculatedMarks) : Number(finalDetails.calculated_marks || 0),
-      status: 'PENDING'
+      awarded_marks: marks || 0,
+      status: 'PENDING',           // ALWAYS PENDING — never VERIFIED from student side
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString()
     })
-    .select()
-    .order('created_at', { ascending: false });
+    .select();
 
   if (error) throw error;
+  if (!data || data.length === 0) throw new Error('Submission insert returned no data');
 
-  if (data && data[0]) {
-    persistToCategoryEntity(studentId, data[0].id, normCat, finalDetails, Number(calculatedMarks || 0)).catch(() => {});
-    return data[0];
-  }
-  return null;
+  persistToCategoryEntity(studentId, data[0].id, normCat, finalDetails, marks).catch(() => {});
+  return data[0];
 }
 
 /**

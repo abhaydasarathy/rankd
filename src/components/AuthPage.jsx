@@ -186,44 +186,62 @@ export default function AuthPage() {
 
       if (authError) throw authError
 
-      // Check email confirmation status (Part 7)
-      if (authData.session === null && authData.user?.identities?.length === 0) {
-        setGlobalError('This email is already registered. Please sign in.')
-        setLoading(false)
-        return
-      }
-      if (authData.session === null) {
-        setGlobalError('Please check your email to confirm your account, then sign in.')
-        setLoading(false)
-        return
+      const userId = authData.user?.id;
+      if (!userId) {
+        setGlobalError('Account created but session not established. Please sign in.');
+        setLoading(false);
+        return;
       }
 
-      const userId = authData.user?.id
-      if (!userId) throw new Error('Account created but user ID not returned. Please sign in.')
-
-      // Insert profile row immediately (Rule 5: never .single() on inserts)
-      const { data: insertedData, error: profileError } = await supabase.from('profiles').insert({
-        id: userId,
-        email,
-        name: form.fullName.trim().split(' ')[0],
-        full_name: form.fullName.trim(),
-        reg_no: regNo,
-        role,
+      // HARDENED INSERT: explicitly use the auth UUID as the primary key
+      const profilePayload = {
+        id: userId,                                    // MUST match auth.users(id) exactly
+        email: email,
+        name: form.fullName.trim().split(' ')[0] || form.fullName.trim(),
+        full_name: form.fullName.trim(),               // never fallback to 'Student'
+        reg_no: role === 'student'
+          ? form.regNo.toUpperCase().trim()
+          : form.facultyId.trim(),
+        role: role,                                    // 'student' or 'faculty'
         department: role === 'student' ? form.branch : 'Faculty',
         programme: role === 'student' ? 'B.Tech' : 'Faculty',
-        section: form.section,
+        section: form.section,                         // bare code e.g. 'P1' not 'Section P1'
         batch: '2024 - 2028',
         batch_year: '2024 - 2028',
-      }).select()
+      };
+
+      const { data: profileData, error: profileError } = await supabase
+        .from('profiles')
+        .insert(profilePayload)
+        .select();                                     // never .single()
 
       if (profileError) {
-        await supabase.auth.admin?.deleteUser(userId).catch(() => {})
-        throw profileError
+        console.error('Profile insert failed:', profileError);
+        console.error('Orphaned auth user created:', userId, '— profile insert failed with:', profileError.message);
+
+        if (profileError.code === '23505') {
+          // Unique violation — email or reg_no already exists
+          setGlobalError('An account with this email or registration number already exists. Please sign in.');
+        } else if (profileError.code === '42501') {
+          // RLS violation
+          setGlobalError('Account created but profile setup failed (permissions error). Please contact support.');
+        } else {
+          setGlobalError('Account created but profile setup failed: ' + profileError.message);
+        }
+        setLoading(false);
+        return;
       }
 
-      // Success — navigate to appropriate portal
-      setIsSuccess(true)
-      navigate(role === 'faculty' ? '/faculty/pending' : '/overview')
+      // Verify the profile was actually inserted
+      if (!profileData || profileData.length === 0) {
+        setGlobalError('Profile creation returned no data. Please try signing in.');
+        setLoading(false);
+        return;
+      }
+
+      // Success — navigate
+      setIsSuccess(true);
+      navigate(role === 'faculty' ? '/faculty/pending' : '/overview');
 
     } catch (err) {
       console.error('Registration error:', err)

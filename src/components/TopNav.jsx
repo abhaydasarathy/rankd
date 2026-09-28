@@ -49,7 +49,7 @@ export default function TopNav({
     }, 150);
   };
 
-  const displayName = profile?.name || profile?.full_name || user?.user_metadata?.name || 'User';
+  const displayName = profile?.name || profile?.full_name || user?.user_metadata?.full_name || user?.user_metadata?.name || 'User';
   const displayRegNo = profile?.reg_no || user?.user_metadata?.reg_no || (profile?.role === 'faculty' ? 'FACULTY' : 'STUDENT');
   const initials = displayName
     .split(' ')

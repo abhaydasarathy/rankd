@@ -99,7 +99,7 @@ export default function ScorePanel({
 
   const renderedScore = (displayScore === 0 && verifiedScore > 0) ? verifiedScore : displayScore;
 
-  const displayName = profile?.name || profile?.full_name || user?.user_metadata?.name || 'Student';
+  const displayName = profile?.name || profile?.full_name || user?.user_metadata?.full_name || user?.user_metadata?.name || 'Student';
   const displayRegNo = profile?.reg_no || user?.user_metadata?.reg_no || '—';
   const displayDept = profile?.department || 'CSE';
   const displaySection = profile?.section ? `Section ${profile.section.replace(/^Section\s*/i, '')}` : 'Section A';

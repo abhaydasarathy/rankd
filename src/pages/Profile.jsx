@@ -259,8 +259,8 @@ export default function Profile({
   scoreResult = {},
 }) {
   const [searchParams] = useSearchParams();
-  const { profile: authProfile } = useAuth();
-  const profile = authProfile || user;
+  const { profile: authProfile, user: authUser } = useAuth();
+  const profile = authProfile || user || {};
 
   if (profile?.role === 'faculty') {
     return <FacultyProfileView profile={profile} />;
@@ -273,20 +273,23 @@ export default function Profile({
   const pendingMarks = scoreResult?.totalPendingScore ?? 0;
   const unclaimedMarks = Math.max(0, 100 - verifiedMarks - pendingMarks);
 
-  const name = user.name || user.full_name || 'Student';
-  const regNo = user.regNo || user.reg_no || '—';
-  const email = user.email || '';
-  const department = user.department || 'CSE';
-  const section = user.section || '—';
-  const batch = user.batch || user.batch_year || '2024–2028';
-  const tenthVal = user.tenthPct ?? user.tenth_pct;
-  const twelfthVal = user.twelfthPct ?? user.twelfth_pct;
-  const cgpaVal = user.cgpa;
+  const rawFullName = profile.full_name || profile.name || user.full_name || user.name || authUser?.user_metadata?.full_name || authUser?.user_metadata?.name || '';
+  const name = rawFullName && rawFullName !== 'Student' && rawFullName !== 'User'
+    ? rawFullName
+    : (user.name && user.name !== 'Student' && user.name !== 'User' ? user.name : 'Student');
+  const regNo = profile.reg_no || profile.regNo || user.regNo || user.reg_no || authUser?.user_metadata?.reg_no || '—';
+  const email = profile.email || user.email || authUser?.email || '';
+  const department = profile.department || user.department || authUser?.user_metadata?.department || 'CSE';
+  const section = profile.section || user.section || authUser?.user_metadata?.section || '—';
+  const batch = profile.batch || profile.batch_year || user.batch || user.batch_year || '2024–2028';
+  const tenthVal = profile.tenth_pct ?? profile.tenthPct ?? user.tenthPct ?? user.tenth_pct;
+  const twelfthVal = profile.twelfth_pct ?? profile.twelfthPct ?? user.twelfthPct ?? user.twelfth_pct;
+  const cgpaVal = profile.cgpa ?? user.cgpa;
 
   const cgpa = cgpaVal !== undefined && cgpaVal !== null && Number(cgpaVal) > 0 ? `${Number(cgpaVal).toFixed(2)} / 10.0` : '—';
   const tenthPct = tenthVal !== undefined && tenthVal !== null && Number(tenthVal) > 0 ? `${Number(tenthVal).toFixed(1)}%` : '—';
   const twelfthPct = twelfthVal !== undefined && twelfthVal !== null && Number(twelfthVal) > 0 ? `${Number(twelfthVal).toFixed(1)}%` : '—';
-  const advisor = user.advisor || 'Faculty Placement Coordinator';
+  const advisor = profile.advisor || user.advisor || 'Faculty Placement Coordinator';
 
   return (
     <div className="page-content w-full p-4 sm:p-6 lg:p-7 min-w-0">

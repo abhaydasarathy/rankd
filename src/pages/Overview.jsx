@@ -86,7 +86,7 @@ export default function Overview({
     timeGreeting = 'Good evening';
   }
 
-  const fullName = profile?.name || profile?.full_name || user?.user_metadata?.name || 'Student';
+  const fullName = profile?.name || profile?.full_name || user?.user_metadata?.full_name || user?.user_metadata?.name || 'Student';
   const firstName = fullName.split(' ')[0] || 'Student';
   const batchYear = profile?.batch || profile?.batch_year || '2024–2028';
 

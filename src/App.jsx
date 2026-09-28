@@ -249,12 +249,14 @@ function PortalShell() {
   const currentStudent = useMemo(() => {
     return {
       id: profile?.id || user?.id,
-      name: profile?.name || profile?.full_name || user?.user_metadata?.name || 'Student',
+      name: profile?.name || profile?.full_name || user?.user_metadata?.full_name?.split(' ')[0] || user?.user_metadata?.name || 'Student',
+      full_name: profile?.full_name || profile?.name || user?.user_metadata?.full_name || user?.user_metadata?.name || 'Student',
+      fullName: profile?.full_name || profile?.name || user?.user_metadata?.full_name || user?.user_metadata?.name || 'Student',
       email: profile?.email || user?.email,
       regNo: profile?.reg_no || profile?.regNo || user?.user_metadata?.reg_no || '',
       reg_no: profile?.reg_no || profile?.regNo || user?.user_metadata?.reg_no || '',
-      department: profile?.department || 'CSE',
-      section: profile?.section || 'Section A',
+      department: profile?.department || user?.user_metadata?.department || 'CSE',
+      section: profile?.section || user?.user_metadata?.section || 'Section A',
       batch: profile?.batch || profile?.batch_year || '2024–2028',
       cgpa: profile?.cgpa ?? 0,
       tenthPct: profile?.tenth_pct ?? profile?.tenthPct ?? 0,

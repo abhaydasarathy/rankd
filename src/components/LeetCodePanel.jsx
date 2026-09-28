@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { fetchLeetCodeProfile, saveLeetCodeProfile, getExistingLeetCodeProfile } from '../lib/leetcodeService'
 import { calculateCodingPlatformScore } from '../utils/scoringEngine'
 import { supabase } from '../lib/supabaseClient'
+import { upsertStudentSubmission } from '../services/submissionService'
 
 export default function LeetCodePanel({ studentId, categoryId = 'coding-platforms', onSubmitProof, onSubmitSuccess }) {
   const [username, setUsername]         = useState('')
@@ -91,7 +92,7 @@ export default function LeetCodePanel({ studentId, categoryId = 'coding-platform
           fetched_at:          profile.fetchedAt
         },
         proof_url:     profile.profileUrl,
-        status:        'VERIFIED', // Verified directly from official LeetCode API
+        status:        'PENDING', // Submissions require faculty verification
         awarded_marks: scores.total
       }
 
@@ -99,13 +100,14 @@ export default function LeetCodePanel({ studentId, categoryId = 'coding-platform
       if (onSubmitProof) {
         await onSubmitProof(categoryId || 'coding-platforms', submissionPayload)
       } else {
-        const { data: submission, error: subErr } = await supabase
-          .from('student_submissions')
-          .insert([submissionPayload])
-          .select()
-          .single()
-
-        if (subErr) throw subErr
+        const submission = await upsertStudentSubmission({
+          studentId,
+          categoryId: categoryId || 'coding-platforms',
+          title: submissionPayload.title,
+          details: submissionPayload.details,
+          proofUrl: submissionPayload.proof_url || null,
+          calculatedMarks: scores.total,
+        });
 
         if (saved?.id && submission?.id) {
           await supabase
