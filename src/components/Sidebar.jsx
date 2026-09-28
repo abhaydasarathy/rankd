@@ -4,7 +4,7 @@ import { Home, BarChart3, User, Trophy, X, Clock, Users } from 'lucide-react';
 import { RankdSymbol } from './RankdLogo';
 import { useAuth } from '../context/AuthContext';
 import { supabase } from '../lib/supabaseClient';
-import { normalizeSection, isSameSection } from '../services';
+import { normalizeSection, isSameSection, getFacultyPendingSubmissions } from '../services';
 
 export default function Sidebar({
   onOpenProfile,
@@ -27,71 +27,42 @@ export default function Sidebar({
   useEffect(() => {
     if (role !== 'faculty' || !user?.id) return;
 
+    let isMounted = true;
+
     const fetchCount = async () => {
       try {
-        const facSec = normalizeSection(profile?.section);
-
-        let ids = [];
-        let hasExplicitMappings = false;
-        try {
-          const { data: mappings, error: mapErr } = await supabase
-            .from('faculty_student_mappings')
-            .select('student_id')
-            .eq('faculty_id', user.id);
-
-          if (!mapErr && mappings && mappings.length > 0) {
-            ids = mappings.map((m) => m.student_id).filter(Boolean);
-            hasExplicitMappings = true;
-          }
-        } catch (e) {}
-
-        if (!hasExplicitMappings && facSec && facSec !== 'ALL') {
-          const { data: sectionStudents } = await supabase
-            .from('profiles')
-            .select('id, section')
-            .eq('role', 'student');
-
-          ids = (sectionStudents || [])
-            .filter((st) => isSameSection(st.section, facSec))
-            .map((st) => st.id);
-
-          if (ids.length === 0) {
-            setFacultyLivePending(0);
-            return;
-          }
+        const pendingList = await getFacultyPendingSubmissions(user.id);
+        if (isMounted) {
+          setFacultyLivePending(Array.isArray(pendingList) ? pendingList.length : 0);
         }
-
-        let query = supabase
-          .from('student_submissions')
-          .select('*', { count: 'exact', head: true })
-          .eq('status', 'PENDING');
-
-        if (ids.length > 0) {
-          query = query.in('student_id', ids);
-        }
-
-        const { count } = await query;
-        setFacultyLivePending(count || 0);
       } catch (err) {
         console.warn('Faculty pending count error:', err);
+        if (isMounted) setFacultyLivePending(0);
       }
     };
 
     fetchCount();
 
+    const channelId = `sidebar-faculty-count-${user.id}`;
     const channel = supabase
-      .channel('faculty-count')
+      .channel(channelId)
       .on(
         'postgres_changes',
         { event: '*', schema: 'public', table: 'student_submissions' },
         fetchCount
       )
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'faculty_student_mappings' },
+        fetchCount
+      )
       .subscribe();
 
     return () => {
+      isMounted = false;
       supabase.removeChannel(channel);
     };
-  }, [role, user?.id]);
+  }, [role, user?.id, profile?.section]);
 
   const effectivePendingCount = isFaculty ? facultyLivePending : pendingCount;
 
