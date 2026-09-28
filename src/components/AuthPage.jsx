@@ -135,54 +135,59 @@ export default function AuthPage() {
     setGlobalError('')
 
     try {
-      const email = form.email.toLowerCase().trim()
+      const email = (form.email || '').toLowerCase().trim();
       const regNo = role === 'student'
-        ? form.regNo.toUpperCase().trim()
-        : form.facultyId.trim()
+        ? (form.regNo || '').toUpperCase().trim()
+        : (form.facultyId || '').trim();
+      const fullName = (form.fullName || '').trim();
+      // Extract first name — NEVER fall back to 'Student', 'User', or any static string
+      const firstName = fullName.split(' ').filter(Boolean)[0] || fullName;
 
-      // Check for duplicate reg_no before creating auth user
+      // ── Step 1: Pre-check duplicates BEFORE creating auth user ──────────────
       const { data: existing, error: checkErr } = await supabase
         .from('profiles')
-        .select('id')
+        .select('id, reg_no')
         .ilike('reg_no', regNo)
-        .maybeSingle()
+        .maybeSingle();
 
-      if (checkErr && checkErr.code !== 'PGRST116') throw checkErr
+      if (checkErr && checkErr.code !== 'PGRST116') throw checkErr;
 
       if (existing) {
-        const label = role === 'student' ? 'Registration number' : 'Faculty ID'
-        setGlobalError(`${label} already registered. Please sign in instead.`)
-        setLoading(false)
-        return
+        const label = role === 'student' ? 'Registration number' : 'Faculty ID';
+        setGlobalError(`${label} "${regNo}" is already registered. Please sign in instead.`);
+        setLoading(false);
+        return;
       }
 
       // Also check email uniqueness
       const { data: existingEmail } = await supabase
         .from('profiles')
-        .select('id')
+        .select('id, email')
         .eq('email', email)
-        .maybeSingle()
+        .maybeSingle();
 
       if (existingEmail) {
-        setGlobalError('An account with this email already exists. Please sign in.')
-        setLoading(false)
-        return
+        setGlobalError('An account with this email already exists. Please sign in.');
+        setLoading(false);
+        return;
       }
 
-      // Create Supabase Auth user
+      // ── Step 2: Create auth user ─────────────────────────────────────────────
       const { data: authData, error: authError } = await supabase.auth.signUp({
         email,
         password: form.password,
         options: {
           data: {
-            full_name: form.fullName.trim(),
+            // Store in user metadata as backup in case profile insert needs retry
+            full_name: fullName,
+            name: firstName,
             reg_no: regNo,
             role,
-            department: role === 'student' ? form.branch : 'Faculty',
-            section: form.section,
+            department: role === 'student' ? (form.branch || 'CSE Core') : 'Faculty',
+            section: form.section || 'A1',
           }
         }
-      })
+      });
 
       if (authError) throw authError
 
@@ -195,65 +200,70 @@ export default function AuthPage() {
 
       // HARDENED INSERT: explicitly use the auth UUID as the primary key
       const profilePayload = {
-        id: userId,                                    // MUST match auth.users(id) exactly
+        id: userId,                          // MUST equal auth.users.id exactly
         email: email,
-        name: form.fullName.trim().split(' ')[0] || form.fullName.trim(),
-        full_name: form.fullName.trim(),               // never fallback to 'Student'
-        reg_no: role === 'student'
-          ? form.regNo.toUpperCase().trim()
-          : form.facultyId.trim(),
-        role: role,                                    // 'student' or 'faculty'
-        department: role === 'student' ? form.branch : 'Faculty',
+        name: firstName,                     // First name only — NEVER 'Student' or static string
+        full_name: fullName,                 // Full registered name
+        reg_no: regNo,
+        role: role,
+        department: role === 'student' ? (form.branch || 'CSE Core') : 'Faculty',
         programme: role === 'student' ? 'B.Tech' : 'Faculty',
-        section: form.section,                         // bare code e.g. 'P1' not 'Section P1'
+        section: form.section || 'A1',       // Bare code e.g. 'P1' — NO 'Section ' prefix
         batch: '2024 - 2028',
         batch_year: '2024 - 2028',
+        tenth_pct: 0,
+        twelfth_pct: 0,
+        cgpa: 0,
       };
 
       const { data: profileData, error: profileError } = await supabase
         .from('profiles')
         .insert(profilePayload)
-        .select();                                     // never .single()
+        .select();    // never .single()
 
       if (profileError) {
-        console.error('Profile insert failed:', profileError);
-        console.error('Orphaned auth user created:', userId, '— profile insert failed with:', profileError.message);
+        console.error('[rankd] Profile insert failed:', {
+          userId,
+          profilePayload,
+          error: profileError
+        });
 
         if (profileError.code === '23505') {
-          // Unique violation — email or reg_no already exists
           setGlobalError('An account with this email or registration number already exists. Please sign in.');
-        } else if (profileError.code === '42501') {
-          // RLS violation
-          setGlobalError('Account created but profile setup failed (permissions error). Please contact support.');
+        } else if (profileError.code === '42501' || profileError.message?.includes('policy')) {
+          setGlobalError(
+            'Account was created but profile setup failed due to a permissions issue. ' +
+            'Please sign out, wait 30 seconds, sign back in, and your profile will be restored. ' +
+            'If this persists, contact support with error code RLS-INSERT.'
+          );
+        } else if (profileError.code === '23503') {
+          setGlobalError(
+            'Account setup took longer than expected. Please sign in with your credentials and your profile will be created automatically.'
+          );
         } else {
-          setGlobalError('Account created but profile setup failed: ' + profileError.message);
+          setGlobalError('Profile setup failed: ' + profileError.message + ' (Code: ' + profileError.code + ')');
         }
         setLoading(false);
         return;
       }
 
-      // Verify the profile was actually inserted
       if (!profileData || profileData.length === 0) {
-        setGlobalError('Profile creation returned no data. Please try signing in.');
+        setGlobalError('Profile was not created. Please try signing in — your account may already exist.');
         setLoading(false);
         return;
       }
 
-      // Success — navigate
+      // Success — show success state briefly then navigate
       setIsSuccess(true);
-      navigate(role === 'faculty' ? '/faculty/pending' : '/overview');
+      setTimeout(() => {
+        navigate(role === 'faculty' ? '/faculty/pending' : '/overview');
+      }, 300);
 
     } catch (err) {
-      console.error('Registration error:', err)
-      if (err.message?.includes('already registered') || err.message?.includes('already exists')) {
-        setGlobalError('An account with this email or ID already exists. Please sign in.')
-      } else if (err.message?.includes('email')) {
-        setGlobalError('Email address is invalid or already in use.')
-      } else {
-        setGlobalError(err.message || 'Registration failed. Please try again.')
-      }
+      console.error('[rankd] Registration exception:', err);
+      setGlobalError('An unexpected error occurred: ' + (err.message || 'Please try again.'));
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
   }
 
