@@ -207,7 +207,6 @@ export default function AuthPage() {
         reg_no: regNo,
         role: role,
         department: role === 'student' ? (form.branch || 'CSE Core') : 'Faculty',
-        programme: role === 'student' ? 'B.Tech' : 'Faculty',
         section: form.section || 'A1',       // Bare code e.g. 'P1' — NO 'Section ' prefix
         batch: '2024 - 2028',
         batch_year: '2024 - 2028',

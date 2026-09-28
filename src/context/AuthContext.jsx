@@ -55,7 +55,6 @@ export function AuthProvider({ children }) {
           reg_no: regNo || (role === 'student' ? 'RA2411003010979' : 'FAC-COORD'),
           role: role,
           department: role === 'student' ? (meta.department || 'CSE Core') : 'Faculty',
-          programme: role === 'student' ? 'B.Tech' : 'Faculty',
           section: meta.section ? String(meta.section).replace(/^Section\s*/i, '') : 'P1',
           batch: '2024 - 2028',
           batch_year: '2024 - 2028',
