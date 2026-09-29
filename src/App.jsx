@@ -426,7 +426,7 @@ function PortalShell() {
   return (
     <div 
       className="min-h-screen w-full relative"
-      style={{ backgroundColor: 'var(--bg-page)', color: 'var(--text-primary)' }}
+      style={{ backgroundColor: 'transparent', color: 'var(--text-primary)' }}
     >
       {/* 1. Collapsible & Responsive Left Sidebar (Rail 64px / Hover 224px) */}
       <Sidebar
