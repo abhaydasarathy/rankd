@@ -2,6 +2,8 @@ import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { supabase } from '../lib/supabaseClient'
 import { RankdSymbol } from './RankdLogo'
+import { validatePassword } from '../utils/passwordValidator'
+import { isPasswordBreached } from '../utils/breachCheck'
 
 const SECTIONS = [
   'A1','A2','B1','B2','C1','C2','D1','D2','E1','E2',
@@ -88,12 +90,6 @@ export default function AuthPage() {
     return ''
   }
 
-  function validatePassword(pass) {
-    if (!pass) return 'Password is required'
-    if (pass.length < 8) return 'Password must be at least 8 characters'
-    return ''
-  }
-
   // ── Register ──────────────────────────────────────────────
   async function handleRegister() {
     const newErrors = {}
@@ -118,8 +114,10 @@ export default function AuthPage() {
       if (!form.section) newErrors.section = 'Please select your section'
     }
 
-    const passErr = validatePassword(form.password || '')
-    if (passErr) newErrors.password = passErr
+    const pwdErrors = validatePassword(form.password || '')
+    if (pwdErrors.length > 0) {
+      newErrors.password = `Password must contain: ${pwdErrors.join(', ')}`
+    }
     if (!form.confirmPassword) {
       newErrors.confirmPassword = 'Please confirm your password'
     } else if (form.password !== form.confirmPassword) {
@@ -128,6 +126,9 @@ export default function AuthPage() {
 
     if (Object.keys(newErrors).length > 0) {
       setErrors(newErrors)
+      if (newErrors.password) {
+        setGlobalError(newErrors.password)
+      }
       return
     }
 
@@ -135,6 +136,16 @@ export default function AuthPage() {
     setGlobalError('')
 
     try {
+      // ── Step 0: Breach check via HaveIBeenPwned k-anonymity ─────────────────
+      const breached = await isPasswordBreached(form.password)
+      if (breached) {
+        const breachMsg = 'This password has appeared in a known data breach. Please choose a different one.'
+        setErrors(prev => ({ ...prev, password: breachMsg }))
+        setGlobalError(breachMsg)
+        setLoading(false)
+        return
+      }
+
       const email = (form.email || '').toLowerCase().trim();
       const regNo = role === 'student'
         ? (form.regNo || '').toUpperCase().trim()
@@ -259,7 +270,7 @@ export default function AuthPage() {
       }, 300);
 
     } catch (err) {
-      console.error('[rankd] Registration exception:', err);
+      console.error('[rankd] Registration exception:', err?.message || 'Registration error');
       setGlobalError('An unexpected error occurred: ' + (err.message || 'Please try again.'));
     } finally {
       setLoading(false);
