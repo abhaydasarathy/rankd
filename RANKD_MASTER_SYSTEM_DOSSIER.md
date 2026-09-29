@@ -225,7 +225,7 @@ CREATE TABLE public.student_submissions (
     category_id TEXT NOT NULL REFERENCES public.placement_categories(id) ON DELETE RESTRICT,
     title TEXT NOT NULL,
     status TEXT NOT NULL DEFAULT 'PENDING' CHECK (status IN ('DRAFT', 'SUBMITTED', 'PENDING', 'VERIFIED', 'REJECTED')),
-    awarded_marks NUMERIC(4,2) NOT NULL DEFAULT 0 CHECK (awarded_marks >= 0 AND awarded_marks <= 15),
+    awarded_marks NUMERIC(4,2) NOT NULL DEFAULT 0 CHECK (awarded_marks >= 0 AND awarded_marks <= 100),
     details JSONB NOT NULL DEFAULT '{}'::jsonb,
     proof_url TEXT,
     verifier_id UUID REFERENCES public.profiles(id) ON DELETE SET NULL,
@@ -272,6 +272,36 @@ CREATE TABLE public.submission_proofs (
     file_size INTEGER,
     public_url TEXT NOT NULL,
     uploaded_at TIMESTAMPTZ DEFAULT now()
+);
+```
+
+#### `public.faculty_student_mappings`
+Section-based allocation linking faculty coordinators to their assigned cohort of students.
+```sql
+CREATE TABLE public.faculty_student_mappings (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    faculty_id UUID NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
+    student_id UUID NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
+    created_at TIMESTAMPTZ DEFAULT now(),
+    UNIQUE (faculty_id, student_id)
+);
+```
+
+#### `public.student_messages`
+Real-time inbox messages dispatched to students upon verification, rejection, or feedback requests.
+```sql
+CREATE TABLE public.student_messages (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    student_id UUID NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
+    faculty_id UUID REFERENCES public.profiles(id) ON DELETE SET NULL,
+    submission_id UUID REFERENCES public.student_submissions(id) ON DELETE SET NULL,
+    category_id TEXT REFERENCES public.placement_categories(id) ON DELETE SET NULL,
+    message_type TEXT NOT NULL CHECK (message_type IN ('VERIFIED', 'REJECTED', 'CORRECTION_REQUESTED')),
+    subject TEXT NOT NULL,
+    body TEXT NOT NULL,
+    faculty_note TEXT,
+    is_read BOOLEAN DEFAULT false,
+    created_at TIMESTAMPTZ DEFAULT now()
 );
 ```
 
@@ -450,16 +480,48 @@ SELECT
 FROM public.student_placement_scores;
 ```
 
-### 4.6 Row Level Security (RLS) Policy Rules
-1. **Profiles**:
-   - `SELECT`: Publicly readable by all authenticated users (needed for leaderboards and faculty views).
+### 4.6 Database Functions, Triggers & Atomic RPCs
+
+#### Atomic Verification Procedure (`public.rpc_verify_submission`)
+Executes an ACID-compliant atomic transaction: updates submission status to `VERIFIED`, awards marks (capped to category max), supersedes older singleton claims for the category, writes an immutable row to `public.verification_logs`, and dispatches an inbox message to `public.student_messages`.
+```sql
+CREATE OR REPLACE FUNCTION public.rpc_verify_submission(
+  p_submission_id UUID,
+  p_faculty_id UUID,
+  p_awarded_marks NUMERIC,
+  p_verifier_notes TEXT DEFAULT NULL
+)
+RETURNS JSONB
+LANGUAGE plpgsql
+SECURITY DEFINER
+AS $$
+...
+```
+
+#### Atomic Rejection Procedure (`public.rpc_reject_submission`)
+Atomically marks a submission `REJECTED`, records faculty rejection notes in `public.verification_logs`, and dispatches an actionable correction/rejection message to `public.student_messages`.
+
+#### Auto-Map Student to Faculty Trigger (`public.trigger_auto_map_student`)
+Executes `AFTER INSERT ON public.profiles` whenever `NEW.role = 'student'`: automatically correlates the new student's section code with active faculty coordinators in `public.faculty_student_mappings`.
+
+### 4.7 Row Level Security (RLS) Policy Rules
+1. **Profiles (`public.profiles`)**:
+   - `SELECT (authenticated)`: Publicly readable by all authenticated users (needed for leaderboards, peer metrics, and faculty views).
+   - `SELECT (anon)`: Publicly readable for initial `reg_no` lookup during sign-in before auth session creation.
    - `INSERT`: Allowed only when `auth.uid() = id`.
    - `UPDATE`: Allowed only when `auth.uid() = id`.
-2. **Student Submissions**:
-   - `SELECT`: Allowed if `student_id = auth.uid()` OR if the user is a `faculty` or `admin`.
-   - `INSERT`: Allowed if `student_id = auth.uid()`.
+2. **Student Submissions (`public.student_submissions`)**:
+   - `SELECT`: Allowed if `student_id = auth.uid()` OR if user is a `faculty` or `admin`.
+   - `INSERT`: Allowed if `student_id = auth.uid() AND status IN ('DRAFT', 'PENDING')` (prevents status escalation).
    - `UPDATE`: Allowed if `(student_id = auth.uid() AND status IN ('DRAFT', 'PENDING'))` OR if user is `faculty` or `admin`.
-3. **Storage Objects (`placement-proofs`)**:
+3. **Faculty-Student Mappings (`public.faculty_student_mappings`)**:
+   - `SELECT`: Allowed if `auth.uid() = faculty_id` OR user is `admin`.
+   - `ALL`: Allowed for faculty coordinators and admins.
+4. **Student Messages (`public.student_messages`)**:
+   - `SELECT`: Allowed if `auth.uid() = student_id`.
+   - `UPDATE`: Allowed if `auth.uid() = student_id` (mark as read).
+   - `INSERT`: Restricted to `faculty` or `admin`.
+5. **Storage Objects (`placement-proofs`)**:
    - Folder name must match `auth.uid()`: `(storage.foldername(name))[1] = auth.uid()::text`.
 
 ---
