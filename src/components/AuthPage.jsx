@@ -3,7 +3,6 @@ import { useNavigate } from 'react-router-dom'
 import { supabase } from '../lib/supabaseClient'
 import { RankdSymbol } from './RankdLogo'
 import { validatePassword } from '../utils/passwordValidator'
-import { isPasswordBreached } from '../utils/breachCheck'
 
 const SECTIONS = [
   'A1','A2','B1','B2','C1','C2','D1','D2','E1','E2',
@@ -116,7 +115,7 @@ export default function AuthPage() {
 
     const pwdErrors = validatePassword(form.password || '')
     if (pwdErrors.length > 0) {
-      newErrors.password = `Password must contain: ${pwdErrors.join(', ')}`
+      newErrors.password = `Password must be ${pwdErrors.join(', ')}`
     }
     if (!form.confirmPassword) {
       newErrors.confirmPassword = 'Please confirm your password'
@@ -136,16 +135,6 @@ export default function AuthPage() {
     setGlobalError('')
 
     try {
-      // ── Step 0: Breach check via HaveIBeenPwned k-anonymity ─────────────────
-      const breached = await isPasswordBreached(form.password)
-      if (breached) {
-        const breachMsg = 'This password has appeared in a known data breach. Please choose a different one.'
-        setErrors(prev => ({ ...prev, password: breachMsg }))
-        setGlobalError(breachMsg)
-        setLoading(false)
-        return
-      }
-
       const email = (form.email || '').toLowerCase().trim();
       const regNo = role === 'student'
         ? (form.regNo || '').toUpperCase().trim()
