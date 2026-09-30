@@ -25,7 +25,10 @@ export default function Sidebar({
   const [facultyLivePending, setFacultyLivePending] = useState(0);
 
   useEffect(() => {
-    if (role !== 'faculty' || !user?.id) return;
+    if (role !== 'faculty' || !user?.id) {
+      setFacultyLivePending(0);
+      return;
+    }
 
     let isMounted = true;
 
@@ -43,7 +46,25 @@ export default function Sidebar({
 
     fetchCount();
 
-    const channelId = `sidebar-faculty-count-${user.id}`;
+    // 1. Instant Custom Event from verification queue actions (0ms lag)
+    const handleCountSync = (e) => {
+      if (typeof e.detail?.count === 'number') {
+        if (isMounted) setFacultyLivePending(Number(e.detail.count));
+      } else {
+        fetchCount();
+      }
+    };
+    window.addEventListener('faculty-pending-count-sync', handleCountSync);
+
+    // 2. Window focus sync (instant update when returning to tab)
+    const handleFocus = () => fetchCount();
+    window.addEventListener('focus', handleFocus);
+
+    // 3. Heartbeat polling interval (every 4 seconds) to guarantee consistency
+    const pollInterval = setInterval(fetchCount, 4000);
+
+    // 4. Supabase Realtime channel
+    const channelId = `sidebar-faculty-count-${user.id}-${Date.now()}`;
     const channel = supabase
       .channel(channelId)
       .on(
@@ -60,9 +81,12 @@ export default function Sidebar({
 
     return () => {
       isMounted = false;
+      window.removeEventListener('faculty-pending-count-sync', handleCountSync);
+      window.removeEventListener('focus', handleFocus);
+      clearInterval(pollInterval);
       supabase.removeChannel(channel);
     };
-  }, [role, user?.id, profile?.section]);
+  }, [role, user?.id, profile?.section, currentPath]);
 
   const effectivePendingCount = isFaculty ? facultyLivePending : pendingCount;
 

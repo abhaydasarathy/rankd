@@ -244,7 +244,13 @@ export default function FacultyPendingQueue() {
     if (!user?.id) return;
     try {
       const data = await getFacultyPendingSubmissions(user.id);
-      setSubmissions(data || []);
+      const list = data || [];
+      setSubmissions(list);
+      window.dispatchEvent(
+        new CustomEvent('faculty-pending-count-sync', {
+          detail: { count: list.length },
+        })
+      );
     } catch (err) {
       console.error('Failed to load pending queue:', err);
     } finally {
@@ -332,7 +338,15 @@ export default function FacultyPendingQueue() {
         studentId: sub.student_id,
         categoryTitle: sub.category?.title || sub.category_id,
       });
-      setSubmissions((prev) => prev.filter((s) => s.id !== sub.id));
+      setSubmissions((prev) => {
+        const next = prev.filter((s) => s.id !== sub.id);
+        window.dispatchEvent(
+          new CustomEvent('faculty-pending-count-sync', {
+            detail: { count: next.length },
+          })
+        );
+        return next;
+      });
       showToast(
         'success',
         `Verified — ${marks}m awarded to ${sub.student?.name || 'student'}.`,
@@ -362,7 +376,15 @@ export default function FacultyPendingQueue() {
         studentId: sub.student_id,
         categoryTitle: sub.category?.title || sub.category_id,
       });
-      setSubmissions((prev) => prev.filter((s) => s.id !== sub.id));
+      setSubmissions((prev) => {
+        const next = prev.filter((s) => s.id !== sub.id);
+        window.dispatchEvent(
+          new CustomEvent('faculty-pending-count-sync', {
+            detail: { count: next.length },
+          })
+        );
+        return next;
+      });
       showToast(
         'success',
         `Rejected — ${sub.student?.name || 'Student'} has been notified in their inbox.`,

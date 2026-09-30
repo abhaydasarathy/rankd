@@ -61,7 +61,10 @@ export async function getFacultyStudents(facultyId) {
     console.warn('Notice: Error fetching faculty profile:', err);
   }
 
-  // 2. Check if explicit mappings exist in faculty_student_mappings
+  const facNorm = normalizeSection(facultySection);
+
+  // 2. Fetch explicit mappings from faculty_student_mappings
+  const mappedStudentMap = new Map();
   try {
     const { data, error } = await supabase
       .from('faculty_student_mappings')
@@ -73,14 +76,17 @@ export async function getFacultyStudents(facultyId) {
       .eq('faculty_id', facultyId);
 
     if (!error && data && data.length > 0) {
-      const studs = data.map((row) => row.student).filter(Boolean);
-      if (studs.length > 0) return studs;
+      data.forEach((row) => {
+        if (row.student && row.student.id) {
+          mappedStudentMap.set(row.student.id, row.student);
+        }
+      });
     }
   } catch (err) {
     // faculty_student_mappings table may not exist
   }
 
-  // 3. Fallback: Fetch student profiles and map by matching section
+  // 3. Fetch student profiles
   const { data: allStudents, error: allErr } = await supabase
     .from('profiles')
     .select('id, name, full_name, email, reg_no, department, section, batch, cgpa, avatar_url, tenth_pct, twelfth_pct')
@@ -89,17 +95,29 @@ export async function getFacultyStudents(facultyId) {
 
   if (allErr) {
     console.error('getFacultyStudents fallback error:', allErr);
-    return [];
+    return Array.from(mappedStudentMap.values());
   }
 
-  const facNorm = normalizeSection(facultySection);
-  // If faculty has 'ALL' or unassigned section, show all students
+  // If faculty has 'ALL' or unassigned section, return all students
   if (!facNorm || facNorm === 'ALL') {
-    return allStudents || [];
+    (allStudents || []).forEach((st) => {
+      if (!mappedStudentMap.has(st.id)) {
+        mappedStudentMap.set(st.id, st);
+      }
+    });
+    return Array.from(mappedStudentMap.values());
   }
 
-  // Map to students who selected the same section
-  return (allStudents || []).filter((st) => isSameSection(st.section, facNorm));
+  // Otherwise union explicit mappings with students belonging to the same section
+  (allStudents || []).forEach((st) => {
+    if (isSameSection(st.section, facNorm)) {
+      if (!mappedStudentMap.has(st.id)) {
+        mappedStudentMap.set(st.id, st);
+      }
+    }
+  });
+
+  return Array.from(mappedStudentMap.values());
 }
 
 // Get all PENDING submissions for students mapped to this faculty (by section or explicit mapping)
@@ -124,9 +142,8 @@ export async function getFacultyPendingSubmissions(facultyId) {
 
   const facNorm = normalizeSection(facultySection);
 
-  // 2. Check if explicit mappings exist in faculty_student_mappings
-  let studentIds = [];
-  let hasExplicitMappings = false;
+  // 2. Collect explicit mappings
+  const studentIdSet = new Set();
   try {
     const { data: mappings, error: mapErr } = await supabase
       .from('faculty_student_mappings')
@@ -134,27 +151,30 @@ export async function getFacultyPendingSubmissions(facultyId) {
       .eq('faculty_id', facultyId);
 
     if (!mapErr && mappings && mappings.length > 0) {
-      studentIds = mappings.map((m) => m.student_id).filter(Boolean);
-      hasExplicitMappings = true;
+      mappings.forEach((m) => {
+        if (m.student_id) studentIdSet.add(m.student_id);
+      });
     }
   } catch (err) {
     // faculty_student_mappings table may not exist
   }
 
-  // 3. If no explicit mappings and faculty coordinates a specific section, map by section
-  if (!hasExplicitMappings && facNorm && facNorm !== 'ALL') {
+  // 3. If faculty coordinates a section, also include students from that section
+  if (facNorm && facNorm !== 'ALL') {
     const { data: sectionStudents } = await supabase
       .from('profiles')
       .select('id, section')
       .eq('role', 'student');
 
-    studentIds = (sectionStudents || [])
-      .filter((st) => isSameSection(st.section, facNorm))
-      .map((st) => st.id);
+    (sectionStudents || []).forEach((st) => {
+      if (isSameSection(st.section, facNorm)) {
+        studentIdSet.add(st.id);
+      }
+    });
 
-    // If faculty coordinates a section and no students are in that section yet,
+    // If faculty coordinates a section and no students are mapped/found in that section,
     // return an empty queue rather than leaking other sections' submissions!
-    if (studentIds.length === 0) {
+    if (studentIdSet.size === 0) {
       return [];
     }
   }
@@ -171,8 +191,8 @@ export async function getFacultyPendingSubmissions(facultyId) {
     .order('created_at', { ascending: false });
 
   // If section-restricted or explicitly mapped, filter submissions
-  if (studentIds.length > 0) {
-    query = query.in('student_id', studentIds);
+  if (studentIdSet.size > 0) {
+    query = query.in('student_id', Array.from(studentIdSet));
   }
 
   const { data, error } = await query;
@@ -185,8 +205,8 @@ export async function getFacultyPendingSubmissions(facultyId) {
       .eq('status', 'PENDING')
       .order('created_at', { ascending: false });
 
-    if (studentIds.length > 0) {
-      flatQuery = flatQuery.in('student_id', studentIds);
+    if (studentIdSet.size > 0) {
+      flatQuery = flatQuery.in('student_id', Array.from(studentIdSet));
     }
 
     const { data: flatData, error: flatErr } = await flatQuery;

@@ -236,11 +236,13 @@ function PortalShell() {
       loadFacultyData();
     };
     window.addEventListener('focus', handleSync);
+    window.addEventListener('faculty-pending-count-sync', handleSync);
     const syncTimer = setInterval(handleSync, 6000);
 
     return () => {
       supabase.removeChannel(channel);
       window.removeEventListener('focus', handleSync);
+      window.removeEventListener('faculty-pending-count-sync', handleSync);
       clearInterval(syncTimer);
     };
   }, [profile?.id, profile?.role, user?.id, user?.user_metadata?.role, loadStudentSubmissions, refreshProfile, loadFacultyData]);
@@ -366,6 +368,7 @@ function PortalShell() {
         loadFacultyData(),
         studentId ? loadStudentSubmissions(studentId) : Promise.resolve(),
       ]);
+      window.dispatchEvent(new CustomEvent('faculty-pending-count-sync'));
       showToast('Ledger Updated', `Status set to ${status}.`, 'success');
     } catch (err) {
       console.error('Verification error:', err);

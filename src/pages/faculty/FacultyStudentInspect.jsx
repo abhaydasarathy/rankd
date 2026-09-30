@@ -390,6 +390,7 @@ export default function FacultyStudentInspect() {
         categoryTitle: sub.category?.title || sub.category_id,
       });
       showToast('success', `Verified — ${marks}m awarded.`, 'Claim Verified');
+      window.dispatchEvent(new CustomEvent('faculty-pending-count-sync'));
       await loadStudentData();
     } catch (err) {
       showToast('error', err.message || 'Failed to verify', 'Action Failed');
@@ -416,6 +417,7 @@ export default function FacultyStudentInspect() {
         categoryTitle: sub.category?.title || sub.category_id,
       });
       showToast('success', `Rejected — student notified.`, 'Claim Rejected');
+      window.dispatchEvent(new CustomEvent('faculty-pending-count-sync'));
       await loadStudentData();
     } catch (err) {
       showToast('error', err.message || 'Failed to reject', 'Action Failed');
