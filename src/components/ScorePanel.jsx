@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Building2, User, Calendar, Award, Sparkles } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { getPlacementTier } from '../utils/scoringEngine';
+import { useTilt } from '../hooks/useTilt';
 
 export default function ScorePanel({
   scoreResult = {},
@@ -113,6 +114,8 @@ export default function ScorePanel({
     .map((n) => n[0].toUpperCase())
     .join('') || 'U';
 
+  const scoreTilt = useTilt();
+
   return (
     <aside
       className="w-full lg:w-[320px] flex flex-col shrink-0 lg:sticky lg:top-[76px] lg:max-h-[calc(100vh-96px)] lg:overflow-y-auto"
@@ -120,11 +123,16 @@ export default function ScorePanel({
     >
       {/* Card 1 — Overall Placement Score */}
       <div
-        className="glass-panel-score"
+        ref={scoreTilt.ref}
+        onMouseMove={scoreTilt.onMouseMove}
+        onMouseLeave={scoreTilt.onMouseLeave}
+        onMouseEnter={scoreTilt.onMouseEnter}
+        className="glass-panel-score tilt-card"
         style={{
           padding: '24px',
         }}
       >
+        <div className="tilt-gloss" aria-hidden="true" />
         <div className="flex items-center justify-between gap-2 mb-4">
           <h2
             style={{

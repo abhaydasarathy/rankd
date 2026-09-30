@@ -284,11 +284,65 @@ body::after {
 @keyframes cardFadeIn {
   from {
     opacity: 0;
-    transform: translateY(10px);
+    transform: translateY(12px);
   }
   to {
     opacity: 1;
     transform: translateY(0);
+  }
+}
+
+@keyframes cardFadeUp {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Metric Workspace Panel Slide-In from Right + Simultaneous Fade */
+@keyframes workspacePanelEnter {
+  from {
+    opacity: 0;
+    transform: translateX(40px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+/* Metric Workspace Panel Slide-Out to Right + Fade Out */
+@keyframes workspacePanelExit {
+  from {
+    opacity: 1;
+    transform: translateX(0);
+  }
+  to {
+    opacity: 0;
+    transform: translateX(40px);
+  }
+}
+
+/* Workspace Modal Backdrop Fade In & Out */
+@keyframes workspaceBackdropFadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes workspaceBackdropFadeOut {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
   }
 }
 
@@ -564,12 +618,37 @@ body::after {
     transition: stroke-dashoffset 800ms cubic-bezier(0.4, 0, 0.2, 1) 100ms;
   }
 
-  /* Metric Cards Stagger In */
-  .metric-card-animated {
+  /* Metric Cards Stagger In (60ms stagger delay per card, translateY 12px -> 0) */
+  .metric-card-animated,
+  .card-stagger-in {
     opacity: 0;
-    transform: translateY(10px);
-    animation: cardFadeIn 300ms ease-out forwards;
-    animation-delay: calc(var(--card-index, 0) * 50ms);
+    transform: translateY(12px);
+    animation: cardFadeIn 280ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    animation-delay: calc(var(--card-index, 0) * 60ms);
+    will-change: transform, opacity;
+  }
+
+  /* Metric Workspace Modal Panel Entrance (translateX 40px -> 0 over 280ms) */
+  .workspace-enter,
+  .workspace-panel-enter {
+    animation: workspacePanelEnter 280ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    will-change: transform, opacity;
+  }
+
+  /* Metric Workspace Modal Panel Exit (translateX 0 -> 40px over 200ms) */
+  .workspace-exit,
+  .workspace-panel-exit {
+    animation: workspacePanelExit 200ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    will-change: transform, opacity;
+  }
+
+  /* Metric Workspace Backdrop Fade Entrance & Exit */
+  .workspace-backdrop-enter {
+    animation: workspaceBackdropFadeIn 280ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  }
+
+  .workspace-backdrop-exit {
+    animation: workspaceBackdropFadeOut 200ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
   }
 
   /* Metric Card Hover */
@@ -894,8 +973,12 @@ body::after {
 .metric-card-hover {
   transition: transform 180ms cubic-bezier(0.16, 1, 0.3, 1), border-color 180ms ease, box-shadow 180ms ease;
 }
-.metric-card-hover:hover {
-  transform: translateY(-1px);
+.metric-card-hover:not(.tilt-card):hover {
+  transform: translateY(-1px) !important;
+  border-color: var(--card-hover-border) !important;
+  box-shadow: var(--card-hover-shadow);
+}
+.metric-card-hover.tilt-card:hover {
   border-color: var(--card-hover-border) !important;
   box-shadow: var(--card-hover-shadow);
 }
@@ -1028,8 +1111,20 @@ a:hover .view-link-arrow {
   .rank-shine-top3,
   .progress-fill-animated,
   .progress-fill-pending-animated,
-  .progress-fill-pending-solo {
+  .progress-fill-pending-solo,
+  .workspace-enter,
+  .workspace-panel-enter,
+  .workspace-exit,
+  .workspace-panel-exit,
+  .workspace-backdrop-enter,
+  .workspace-backdrop-exit,
+  .metric-card-animated,
+  .card-stagger-in {
     animation: none !important;
+    animation-duration: 0ms !important;
+    animation-delay: 0ms !important;
+    transition-duration: 0ms !important;
+    opacity: 1 !important;
     transform: none !important;
     box-shadow: none !important;
   }
@@ -1894,5 +1989,38 @@ a:hover .view-link-arrow {
     transition: none !important;
   }
 }
+
+/* ── 3D Tilt Card System ── */
+
+/* The card wrapper needs a stacking context for the gloss overlay */
+.tilt-card {
+  position: relative;
+  transform-style: preserve-3d;
+  will-change: transform;
+}
+
+/* Gloss overlay — sits above card content, pointer-events none so it doesn't block clicks */
+.tilt-gloss {
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;       /* matches the card's own border radius */
+  pointer-events: none;
+  opacity: 0;
+  z-index: 10;
+  transition: opacity 400ms ease;
+  mix-blend-mode: screen;       /* blends with dark background more naturally */
+}
+
+/* Reduced motion: disable entirely */
+@media (prefers-reduced-motion: reduce) {
+  .tilt-card {
+    transform: none !important;
+    transition: none !important;
+  }
+  .tilt-gloss {
+    display: none !important;
+  }
+}
+
 
 

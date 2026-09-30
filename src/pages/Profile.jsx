@@ -4,6 +4,7 @@ import { ShieldCheck, Check, Loader2 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { supabase } from '../lib/supabaseClient';
 import ScoreBanner from '../components/ScoreBanner';
+import { useTilt } from '../hooks/useTilt';
 
 const ALL_SECTIONS = [
   'All Sections',
@@ -291,6 +292,10 @@ export default function Profile({
   const twelfthPct = twelfthVal !== undefined && twelfthVal !== null && Number(twelfthVal) > 0 ? `${Number(twelfthVal).toFixed(1)}%` : '—';
   const advisor = profile.advisor || user.advisor || 'Faculty Placement Coordinator';
 
+  const cgpaTilt = useTilt({ maxTilt: 5 });
+  const tenthTilt = useTilt({ maxTilt: 5 });
+  const twelfthTilt = useTilt({ maxTilt: 5 });
+
   return (
     <div className="page-content w-full p-4 sm:p-6 lg:p-7 min-w-0">
       {/* Onboarding Welcome Banner */}
@@ -401,17 +406,41 @@ export default function Profile({
               Verified Academic Records
             </h3>
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3.5">
-              <div className="p-4 rounded-[var(--radius)] border text-center" style={{ backgroundColor: 'var(--bg-input)', borderColor: 'var(--border)' }}>
+              <div
+                ref={cgpaTilt.ref}
+                onMouseMove={cgpaTilt.onMouseMove}
+                onMouseLeave={cgpaTilt.onMouseLeave}
+                onMouseEnter={cgpaTilt.onMouseEnter}
+                className="academic-stat-card tilt-card p-4 rounded-[var(--radius)] border text-center"
+                style={{ backgroundColor: 'var(--bg-input)', borderColor: 'var(--border)' }}
+              >
+                <div className="tilt-gloss" aria-hidden="true" />
                 <span className="text-xs block" style={{ color: 'var(--text-muted)' }}>Current CGPA</span>
                 <span className="text-xl font-bold mt-1 block" style={{ color: 'var(--green-text)' }}>{cgpa}</span>
                 <span className="text-[10px]" style={{ color: 'var(--text-muted)' }}>SRMIST Registrar Verified</span>
               </div>
-              <div className="p-4 rounded-[var(--radius)] border text-center" style={{ backgroundColor: 'var(--bg-input)', borderColor: 'var(--border)' }}>
+              <div
+                ref={tenthTilt.ref}
+                onMouseMove={tenthTilt.onMouseMove}
+                onMouseLeave={tenthTilt.onMouseLeave}
+                onMouseEnter={tenthTilt.onMouseEnter}
+                className="academic-stat-card tilt-card p-4 rounded-[var(--radius)] border text-center"
+                style={{ backgroundColor: 'var(--bg-input)', borderColor: 'var(--border)' }}
+              >
+                <div className="tilt-gloss" aria-hidden="true" />
                 <span className="text-xs block" style={{ color: 'var(--text-muted)' }}>10th Standard</span>
                 <span className="text-xl font-bold mt-1 block" style={{ color: 'var(--text-primary)' }}>{tenthPct}</span>
                 <span className="text-[10px]" style={{ color: 'var(--text-muted)' }}>Board Certified</span>
               </div>
-              <div className="p-4 rounded-[var(--radius)] border text-center" style={{ backgroundColor: 'var(--bg-input)', borderColor: 'var(--border)' }}>
+              <div
+                ref={twelfthTilt.ref}
+                onMouseMove={twelfthTilt.onMouseMove}
+                onMouseLeave={twelfthTilt.onMouseLeave}
+                onMouseEnter={twelfthTilt.onMouseEnter}
+                className="academic-stat-card tilt-card p-4 rounded-[var(--radius)] border text-center"
+                style={{ backgroundColor: 'var(--bg-input)', borderColor: 'var(--border)' }}
+              >
+                <div className="tilt-gloss" aria-hidden="true" />
                 <span className="text-xs block" style={{ color: 'var(--text-muted)' }}>12th Standard</span>
                 <span className="text-xl font-bold mt-1 block" style={{ color: 'var(--text-primary)' }}>{twelfthPct}</span>
                 <span className="text-[10px]" style={{ color: 'var(--text-muted)' }}>Higher Secondary</span>

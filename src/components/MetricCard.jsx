@@ -1,4 +1,5 @@
 import React from 'react';
+import { useTilt } from '../hooks/useTilt';
 import { 
   GraduationCap, 
   Code2, 
@@ -130,9 +131,15 @@ export default function MetricCard({
     pendingScore > 0 ? (pendingScore / maxMarks) * 100 : (status === 'pending' ? 12 : 0)
   );
 
+  const tilt = useTilt();
+
   return (
     <div
-      className="metric-card metric-card-animated metric-card-hover flex flex-col justify-between min-w-0"
+      ref={tilt.ref}
+      onMouseMove={tilt.onMouseMove}
+      onMouseLeave={tilt.onMouseLeave}
+      onMouseEnter={tilt.onMouseEnter}
+      className="metric-card tilt-card metric-card-animated card-stagger-in metric-card-hover flex flex-col justify-between min-w-0"
       onClick={() => onSelectCategory && onSelectCategory(category)}
       role="button"
       tabIndex={0}
@@ -153,6 +160,9 @@ export default function MetricCard({
         '--card-index': animationIndex,
       }}
     >
+      {/* Gloss layer — must be first child */}
+      <div className="tilt-gloss" aria-hidden="true" />
+
       <div className="min-w-0">
         {/* Row 1: Icon + Name + Status Badge */}
         <div className="flex items-center justify-between gap-2 mb-3 min-w-0">

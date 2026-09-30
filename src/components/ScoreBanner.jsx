@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { useTilt } from '../hooks/useTilt';
 
 export default function ScoreBanner({
   score = 0,
@@ -69,10 +70,15 @@ export default function ScoreBanner({
   }, [score]);
 
   const renderedScore = (displayScore === 0 && (score || 0) > 0) ? score : displayScore;
+  const tilt = useTilt();
 
   return (
     <div
-      className="score-banner flex flex-col gap-4"
+      ref={tilt.ref}
+      onMouseMove={tilt.onMouseMove}
+      onMouseLeave={tilt.onMouseLeave}
+      onMouseEnter={tilt.onMouseEnter}
+      className="score-banner tilt-card flex flex-col gap-4"
       style={{
         backgroundColor: 'var(--bg-card)',
         border: '1px solid var(--border)',
@@ -81,6 +87,8 @@ export default function ScoreBanner({
         marginBottom: '24px',
       }}
     >
+      <div className="tilt-gloss" aria-hidden="true" />
+
       {/* Top Row: Score Display & Progress Percentage */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         {/* Left: Overall Placement Score */}

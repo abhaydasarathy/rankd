@@ -1,6 +1,145 @@
 import React, { useState, useMemo } from 'react';
 import { Trophy, Search, Medal, Award, Star, ExternalLink, X } from 'lucide-react';
 import { calculateTotalScore } from '../utils/scoringEngine';
+import { useTilt } from '../hooks/useTilt';
+
+function LeaderboardRow({ st, index, currentStudent, setInspectStudent }) {
+  const rank = index + 1;
+  const isTopThree = rank <= 3;
+  const tilt = useTilt({ maxTilt: 5 });
+
+  const rankClass =
+    rank === 1 ? 'rank-1' : rank === 2 ? 'rank-2' : rank === 3 ? 'rank-3' : 'rank-other';
+  const scorePercent = Math.min(st.calculatedVerifiedScore, 100);
+  const isCurrent = currentStudent && (currentStudent.id === st.id || currentStudent.regNo === st.regNo);
+
+  return (
+    <tr
+      ref={isTopThree ? tilt.ref : undefined}
+      onMouseMove={isTopThree ? tilt.onMouseMove : undefined}
+      onMouseLeave={isTopThree ? tilt.onMouseLeave : undefined}
+      onMouseEnter={isTopThree ? tilt.onMouseEnter : undefined}
+      className={`leaderboard-row ${isTopThree ? 'tilt-card' : ''}`}
+      style={{
+        '--row-index': index,
+        borderBottom: '1px solid var(--border)',
+        backgroundColor: isCurrent ? 'var(--sidebar-active-bg)' : undefined,
+      }}
+      onClick={() => setInspectStudent(st)}
+    >
+      {/* Rank */}
+      <td className="py-3.5 px-4 text-center">
+        {isTopThree && <div className="tilt-gloss" aria-hidden="true" />}
+        <span className={`rank-number ${rankClass} ${rank <= 3 ? 'rank-shine-top3' : ''}`}>
+          {rank <= 3 ? `#${rank}` : rank}
+        </span>
+      </td>
+
+      {/* Student Name */}
+      <td className="py-3.5 px-4">
+        <div className="flex items-center gap-2.5">
+          <div
+            className="w-7 h-7 rounded-full flex items-center justify-center font-bold text-[11px] shrink-0"
+            style={{
+              backgroundColor: isCurrent ? 'var(--green-light)' : 'var(--bg-input)',
+              color: isCurrent ? 'var(--green-text)' : 'var(--text-primary)',
+            }}
+          >
+            {(st.name || st.full_name || 'S')[0].toUpperCase()}
+          </div>
+          <div>
+            <span className="font-semibold block" style={{ color: 'var(--text-primary)' }}>
+              {st.name || st.full_name}
+              {isCurrent && (
+                <span className="ml-1.5 text-[10px] px-1.5 py-0.2 rounded font-medium" style={{ backgroundColor: 'var(--green-light)', color: 'var(--green-text)' }}>
+                  You
+                </span>
+              )}
+            </span>
+            <span className="text-[11px]" style={{ color: 'var(--text-muted)' }}>
+              {st.email || 'SRMIST Student'}
+            </span>
+          </div>
+        </div>
+      </td>
+
+      {/* Dept & Reg No */}
+      <td className="py-3.5 px-4" style={{ color: 'var(--text-secondary)' }}>
+        <div>{st.department || 'CSE'} • {st.section || 'Sec A'}</div>
+        <div className="font-mono text-[11px]" style={{ color: 'var(--text-muted)' }}>
+          {st.regNo || st.reg_no || 'RA2411003010000'}
+        </div>
+      </td>
+
+      {/* Thin Score Bar (100px width, 3px height) */}
+      <td className="py-3.5 px-4">
+        <div className="flex items-center gap-2">
+          <div
+            className="overflow-hidden"
+            style={{
+              width: '100px',
+              height: '3px',
+              backgroundColor: 'var(--bg-input)',
+              borderRadius: '9999px',
+            }}
+          >
+            <div
+              style={{
+                width: `${scorePercent}%`,
+                height: '100%',
+                backgroundColor: 'var(--green-bar)',
+                transition: 'width 600ms cubic-bezier(0.4, 0, 0.2, 1)',
+              }}
+            />
+          </div>
+          <span className="font-mono text-[10px]" style={{ color: 'var(--text-muted)' }}>
+            {scorePercent}%
+          </span>
+        </div>
+      </td>
+
+      {/* Score */}
+      <td className="py-3.5 px-4 text-right">
+        <span className="font-bold text-sm" style={{ color: 'var(--text-primary)' }}>
+          {st.calculatedVerifiedScore}
+        </span>
+        <span className="text-[11px]" style={{ color: 'var(--text-muted)' }}>
+          {' '}/ 100
+        </span>
+      </td>
+
+      {/* Status Badge */}
+      <td className="py-3.5 px-4 text-right">
+        <span
+          className="status-badge"
+          style={{
+            backgroundColor:
+              st.computedStatus === 'verified'
+                ? 'var(--green-light)'
+                : st.computedStatus === 'pending'
+                ? 'var(--amber-light)'
+                : 'var(--gray-badge-bg)',
+            color:
+              st.computedStatus === 'verified'
+                ? 'var(--green-text)'
+                : st.computedStatus === 'pending'
+                ? 'var(--amber-text)'
+                : 'var(--gray-badge-text)',
+            padding: '2px 8px',
+            fontSize: '11px',
+            fontWeight: 500,
+          }}
+        >
+          {st.computedStatus === 'verified'
+            ? 'Verified'
+            : st.computedStatus === 'pending'
+            ? 'Pending'
+            : 'Unclaimed'}
+        </span>
+      </td>
+    </tr>
+  );
+}
 
 export default function Leaderboard({
   studentsList = [],
@@ -273,136 +412,15 @@ export default function Leaderboard({
             </thead>
             <tbody>
               {filteredStudents.length > 0 ? (
-                filteredStudents.map((st, index) => {
-                  const rank = index + 1;
-                  const rankClass =
-                    rank === 1 ? 'rank-1' : rank === 2 ? 'rank-2' : rank === 3 ? 'rank-3' : 'rank-other';
-                  const scorePercent = Math.min(st.calculatedVerifiedScore, 100);
-                  const isCurrent = currentStudent && (currentStudent.id === st.id || currentStudent.regNo === st.regNo);
-
-                  return (
-                    <tr
-                      key={st.id || index}
-                      className="leaderboard-row"
-                      style={{
-                        '--row-index': index,
-                        borderBottom: '1px solid var(--border)',
-                        backgroundColor: isCurrent ? 'var(--sidebar-active-bg)' : undefined,
-                      }}
-                      onClick={() => setInspectStudent(st)}
-                    >
-                      {/* Rank */}
-                      <td className="py-3.5 px-4 text-center">
-                        <span className={`rank-number ${rankClass} ${rank <= 3 ? 'rank-shine-top3' : ''}`}>
-                          {rank <= 3 ? `#${rank}` : rank}
-                        </span>
-                      </td>
-
-                      {/* Student Name */}
-                      <td className="py-3.5 px-4">
-                        <div className="flex items-center gap-2.5">
-                          <div
-                            className="w-7 h-7 rounded-full flex items-center justify-center font-bold text-[11px] shrink-0"
-                            style={{
-                              backgroundColor: isCurrent ? 'var(--green-light)' : 'var(--bg-input)',
-                              color: isCurrent ? 'var(--green-text)' : 'var(--text-primary)',
-                            }}
-                          >
-                            {(st.name || st.full_name || 'S')[0].toUpperCase()}
-                          </div>
-                          <div>
-                            <span className="font-semibold block" style={{ color: 'var(--text-primary)' }}>
-                              {st.name || st.full_name}
-                              {isCurrent && (
-                                <span className="ml-1.5 text-[10px] px-1.5 py-0.2 rounded font-medium" style={{ backgroundColor: 'var(--green-light)', color: 'var(--green-text)' }}>
-                                  You
-                                </span>
-                              )}
-                            </span>
-                            <span className="text-[11px]" style={{ color: 'var(--text-muted)' }}>
-                              {st.email || 'SRMIST Student'}
-                            </span>
-                          </div>
-                        </div>
-                      </td>
-
-                      {/* Dept & Reg No */}
-                      <td className="py-3.5 px-4" style={{ color: 'var(--text-secondary)' }}>
-                        <div>{st.department || 'CSE'} • {st.section || 'Sec A'}</div>
-                        <div className="font-mono text-[11px]" style={{ color: 'var(--text-muted)' }}>
-                          {st.regNo || st.reg_no || 'RA2411003010000'}
-                        </div>
-                      </td>
-
-                      {/* Thin Score Bar (100px width, 3px height) */}
-                      <td className="py-3.5 px-4">
-                        <div className="flex items-center gap-2">
-                          <div
-                            className="overflow-hidden"
-                            style={{
-                              width: '100px',
-                              height: '3px',
-                              backgroundColor: 'var(--bg-input)',
-                              borderRadius: '9999px',
-                            }}
-                          >
-                            <div
-                              style={{
-                                width: `${scorePercent}%`,
-                                height: '100%',
-                                backgroundColor: 'var(--green-bar)',
-                                transition: 'width 600ms cubic-bezier(0.4, 0, 0.2, 1)',
-                              }}
-                            />
-                          </div>
-                          <span className="font-mono text-[10px]" style={{ color: 'var(--text-muted)' }}>
-                            {scorePercent}%
-                          </span>
-                        </div>
-                      </td>
-
-                      {/* Score */}
-                      <td className="py-3.5 px-4 text-right">
-                        <span className="font-bold text-sm" style={{ color: 'var(--text-primary)' }}>
-                          {st.calculatedVerifiedScore}
-                        </span>
-                        <span className="text-[11px]" style={{ color: 'var(--text-muted)' }}>
-                          {' '}/ 100
-                        </span>
-                      </td>
-
-                      {/* Status Badge */}
-                      <td className="py-3.5 px-4 text-right">
-                        <span
-                          className="status-badge"
-                          style={{
-                            backgroundColor:
-                              st.computedStatus === 'verified'
-                                ? 'var(--green-light)'
-                                : st.computedStatus === 'pending'
-                                ? 'var(--amber-light)'
-                                : 'var(--gray-badge-bg)',
-                            color:
-                              st.computedStatus === 'verified'
-                                ? 'var(--green-text)'
-                                : st.computedStatus === 'pending'
-                                ? 'var(--amber-text)'
-                                : 'var(--gray-badge-text)',
-                            padding: '2px 8px',
-                            fontSize: '11px',
-                            fontWeight: 500,
-                          }}
-                        >
-                          {st.computedStatus === 'verified'
-                            ? 'Verified'
-                            : st.computedStatus === 'pending'
-                            ? 'Pending'
-                            : 'Unclaimed'}
-                        </span>
-                      </td>
-                    </tr>
-                  );
-                })
+                filteredStudents.map((st, index) => (
+                  <LeaderboardRow
+                    key={st.id || index}
+                    st={st}
+                    index={index}
+                    currentStudent={currentStudent}
+                    setInspectStudent={setInspectStudent}
+                  />
+                ))
               ) : (
                 <tr>
                   <td colSpan={6} className="text-center py-10" style={{ color: 'var(--text-muted)' }}>

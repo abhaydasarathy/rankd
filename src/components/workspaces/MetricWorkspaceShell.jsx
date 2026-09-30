@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   ArrowLeft,
   X,
@@ -27,17 +27,34 @@ export default function MetricWorkspaceShell({
   onToggleRubricInfo,
   children,
 }) {
+  const [isClosing, setIsClosing] = useState(false);
+
+  useEffect(() => {
+    if (isOpen) {
+      setIsClosing(false);
+    }
+  }, [isOpen]);
+
+  const handleClose = useCallback(() => {
+    if (isClosing) return;
+    setIsClosing(true);
+    setTimeout(() => {
+      onClose();
+      setIsClosing(false);
+    }, 200);
+  }, [isClosing, onClose]);
+
   // Escape key handler
   useEffect(() => {
     if (!isOpen) return;
     const handleKeyDown = (e) => {
       if (e.key === 'Escape') {
-        onClose();
+        handleClose();
       }
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [isOpen, onClose]);
+  }, [isOpen, handleClose]);
 
   // Lock body scroll when modal is open
   useEffect(() => {
@@ -55,7 +72,9 @@ export default function MetricWorkspaceShell({
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-5 lg:p-7 overflow-y-auto"
+      className={`fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-5 lg:p-7 overflow-y-auto ${
+        isClosing ? 'workspace-backdrop-exit' : 'workspace-backdrop-enter'
+      }`}
       style={{
         backgroundColor: 'rgba(0, 0, 0, 0.65)',
         backdropFilter: 'blur(6px)',
@@ -66,17 +85,19 @@ export default function MetricWorkspaceShell({
       aria-labelledby="metric-workspace-title"
       onClick={(e) => {
         if (e.target === e.currentTarget) {
-          onClose();
+          handleClose();
         }
       }}
     >
       {/* Click outside backdrop */}
-      <div className="fixed inset-0 -z-10" onClick={onClose} aria-hidden="true" />
+      <div className="fixed inset-0 -z-10" onClick={handleClose} aria-hidden="true" />
 
       {/* Main Spacious Focused Workspace Container (940px max width) */}
       <div
         onClick={(e) => e.stopPropagation()}
-        className="relative z-10 w-full max-w-[940px] my-auto rounded-[var(--radius-xl)] flex flex-col overflow-hidden shadow-2xl transition-all"
+        className={`relative z-10 w-full max-w-[940px] my-auto rounded-[var(--radius-xl)] flex flex-col overflow-hidden shadow-2xl ${
+          isClosing ? 'workspace-exit workspace-panel-exit' : 'workspace-enter workspace-panel-enter'
+        }`}
         style={{
           backgroundColor: 'var(--bg-card)',
           border: '1px solid var(--border)',
@@ -97,7 +118,7 @@ export default function MetricWorkspaceShell({
             type="button"
             onClick={(e) => {
               e.stopPropagation();
-              onClose();
+              handleClose();
             }}
             className="inline-flex items-center gap-2 text-xs font-semibold hover:opacity-80 transition-opacity cursor-pointer px-2.5 py-1.5 rounded-[var(--radius-sm)] border"
             style={{
@@ -115,7 +136,7 @@ export default function MetricWorkspaceShell({
             type="button"
             onClick={(e) => {
               e.stopPropagation();
-              onClose();
+              handleClose();
             }}
             aria-label="Close workspace"
             className="p-1.5 rounded-full hover:opacity-75 transition-opacity cursor-pointer border"
