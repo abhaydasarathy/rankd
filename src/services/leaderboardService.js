@@ -185,12 +185,22 @@ export async function fetchLeaderboard({
       const codingScore = isSingleOrNoSubmission ? 0 : Number(vRow.coding_score || 0);
       const internScore = isSingleOrNoSubmission ? 0 : Number(vRow.internship_score || 0);
       const skillScore = isSingleOrNoSubmission ? 0 : Number(vRow.skillset_score || 0);
-      const projScore = isSingleOrNoSubmission ? 0 : Number(vRow.projects_score || 0);
       const fsdScore = isSingleOrNoSubmission ? 0 : Number(vRow.fullstack_score || 0);
       const hackScore = isSingleOrNoSubmission ? 0 : Number(vRow.hackathons_score || 0);
       const inhouseScore = isSingleOrNoSubmission ? 0 : Number(vRow.inhouse_score || 0);
       const memScore = isSingleOrNoSubmission ? 0 : Number(vRow.membership_score || 0);
-      const assessScore = isSingleOrNoSubmission ? 0 : Number(vRow.assessments_score || 0);
+
+      // In the remote SQL view, unsubmitted categories default to their maximum rubric marks (5 for projects, 10 for assessments).
+      // Only include category marks if backed by verified submissions, neutralizing phantom defaults.
+      const hasVerifiedProj = studentSubs.some((s) => (s.categoryId === 'projects' || s.category_id === 'projects') && ['VERIFIED', 'APPROVED'].includes(String(s.status || '').toUpperCase()));
+      const projScore = (isSingleOrNoSubmission || (!hasVerifiedProj && Number(vRow.projects_score) === 5))
+        ? 0
+        : Number(vRow.projects_score || 0);
+
+      const hasVerifiedAssess = studentSubs.some((s) => (s.categoryId === 'assessments' || s.category_id === 'assessments') && ['VERIFIED', 'APPROVED'].includes(String(s.status || '').toUpperCase()));
+      const assessScore = (isSingleOrNoSubmission || (!hasVerifiedAssess && Number(vRow.assessments_score) === 10))
+        ? 0
+        : Number(vRow.assessments_score || 0);
 
       const verifiedTotal = isSingleOrNoSubmission
         ? acadScore

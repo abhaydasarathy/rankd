@@ -167,8 +167,9 @@ export default function Leaderboard({
   currentStudent = null,
   studentsList = [],
 }) {
-  const [students, setStudents]         = useState([]);
+  const [allStudents, setAllStudents]   = useState([]);
   const [loading, setLoading]           = useState(true);
+  const [isRefreshing, setIsRefreshing] = useState(false);
   const [error, setError]               = useState(null);
   const [searchInput, setSearchInput]   = useState('');
   const [search, setSearch]             = useState('');
@@ -177,25 +178,34 @@ export default function Leaderboard({
   const [refreshKey, setRefreshKey]     = useState(0);
   const [inspectStudent, setInspectStudent] = useState(null);
 
-  // ── Debounce search input (250ms) ──────────────────────────────────────────
+  // ── Debounce search input (150ms for snappy responsiveness) ────────────────
   useEffect(() => {
     const timer = setTimeout(() => {
       setSearch(searchInput);
-    }, 250);
+    }, 150);
     return () => clearTimeout(timer);
   }, [searchInput]);
 
-  // ── Fetch function — queries public.placement_leaderboard & reconciles scores ─────────────
-  const loadLeaderboard = useCallback(async () => {
+  // Stable primitives for dependencies to avoid 6-second heartbeat re-fetch jitter
+  const currentStudentId = currentStudent?.id || currentStudent?.reg_no || currentStudent?.regNo;
+  const currentStudentSubsLen = currentStudent?.submissions?.length ?? 0;
+  const studentsListLen = studentsList?.length ?? 0;
+
+  // ── Fetch function — fetches full cohort; filtering is performed in-memory ──
+  const loadLeaderboard = useCallback(async (isSilent = false) => {
     try {
-      setLoading(true);
+      if (!isSilent && allStudents.length === 0) {
+        setLoading(true);
+      } else {
+        setIsRefreshing(true);
+      }
       const data = await fetchLeaderboard({
-        department: department === 'All Departments' ? null : department,
-        search,
+        department: null, // Always fetch all departments so dropdown never collapses
+        search: '',       // Always fetch all students so search is instant and 60fps
         currentStudent,
         studentsList,
       });
-      setStudents(data);
+      setAllStudents(data);
       setLastUpdated(new Date());
       setError(null);
     } catch (err) {
@@ -203,8 +213,9 @@ export default function Leaderboard({
       setError(err.message || 'Failed to load leaderboard data.');
     } finally {
       setLoading(false);
+      setIsRefreshing(false);
     }
-  }, [department, search, refreshKey, currentStudent, studentsList]);
+  }, [currentStudentId, currentStudentSubsLen, studentsListLen, refreshKey]);
 
   // ── Initial & dependency fetch ─────────────────────────────────────────────
   useEffect(() => {
@@ -223,12 +234,10 @@ export default function Leaderboard({
           table: 'student_submissions',    // any verification/rejection triggers this
         },
         (payload) => {
-          // Only refetch on status changes that affect scores
           const newStatus = payload.new?.status;
           const oldStatus = payload.old?.status;
           const scoreRelevant = newStatus === 'VERIFIED' || oldStatus === 'VERIFIED';
           if (scoreRelevant || payload.eventType === 'DELETE') {
-            // Brief debounce to let the DB view recalculate
             setTimeout(() => {
               setRefreshKey((k) => k + 1);
             }, 300);
@@ -255,19 +264,46 @@ export default function Leaderboard({
     };
   }, []);
 
-  // ── Extract unique departments ─────────────────────────────────────────────
+  // ── Extract unique departments from ALL students (Never collapses on filter) ──
   const departments = useMemo(() => {
     const s = new Set(['All Departments']);
-    (students || []).forEach((st) => {
+    (allStudents || []).forEach((st) => {
       if (st.department) s.add(st.department);
     });
     return Array.from(s);
-  }, [students]);
+  }, [allStudents]);
 
-  // ── Derive podium strictly from the same students array (Fix 6) ────────────
-  const top1 = students.find((s) => Number(s.rank) === 1) || students[0];
-  const top2 = students.find((s) => Number(s.rank) === 2) || students[1];
-  const top3 = students.find((s) => Number(s.rank) === 3) || students[2];
+  // ── Instant in-memory cohort filtering for table (0ms latency, zero flicker) ──
+  const filteredStudents = useMemo(() => {
+    let list = allStudents;
+    if (department && department !== 'All Departments') {
+      list = list.filter((s) => s.department === department);
+    }
+    if (search && search.trim() !== '') {
+      const term = search.toLowerCase().trim();
+      list = list.filter((r) =>
+        r.full_name?.toLowerCase().includes(term) ||
+        r.name?.toLowerCase().includes(term) ||
+        r.reg_no?.toLowerCase().includes(term) ||
+        r.regNo?.toLowerCase().includes(term) ||
+        r.email?.toLowerCase().includes(term)
+      );
+    }
+    return list;
+  }, [allStudents, department, search]);
+
+  // ── Derive podium candidates strictly from department cohort (Never hidden by search) ──
+  const podiumStudents = useMemo(() => {
+    let list = allStudents;
+    if (department && department !== 'All Departments') {
+      list = list.filter((s) => s.department === department);
+    }
+    return list.slice(0, 3);
+  }, [allStudents, department]);
+
+  const top1 = podiumStudents[0];
+  const top2 = podiumStudents[1];
+  const top3 = podiumStudents[2];
 
   return (
     <div className="page-content w-full p-4 sm:p-6 lg:p-7 min-w-0">
@@ -354,7 +390,7 @@ export default function Leaderboard({
               color: 'var(--text-muted)',
             }}
           >
-            <RefreshCw size={14} className={loading ? 'animate-spin' : ''} />
+            <RefreshCw size={14} className={isRefreshing || loading ? 'animate-spin' : ''} />
           </button>
         </div>
       </div>
@@ -381,13 +417,13 @@ export default function Leaderboard({
         </div>
       )}
 
-      {/* Top 3 Podium Cards (Rank 2 first 150ms, Rank 1 center 0ms hero, Rank 3 right 300ms) */}
-      {!loading && students.length >= 3 && (
+      {/* Top 3 Podium Cards (Mobile: Gold on top; Desktop: Silver left, Gold center hero, Bronze right) */}
+      {!loading && podiumStudents.length > 0 && (
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-7 items-end">
           {/* Rank 2 (Silver) */}
           {top2 && (
             <div
-              className="p-5 border flex flex-col items-center text-center transition-transform hover:-translate-y-0.5 cursor-pointer"
+              className="order-2 md:order-1 p-5 border flex flex-col items-center text-center transition-transform hover:-translate-y-0.5 cursor-pointer"
               onClick={() => setInspectStudent(top2)}
               style={{
                 backgroundColor: 'var(--bg-card)',
@@ -395,7 +431,6 @@ export default function Leaderboard({
                 borderRadius: 'var(--radius-lg, 16px)',
                 animation: 'rowSlideIn 300ms ease-out forwards',
                 animationDelay: '150ms',
-                order: 1,
               }}
             >
               <div className="w-9 h-9 rounded-full flex items-center justify-center mb-2" style={{ backgroundColor: 'rgba(148, 163, 184, 0.15)' }}>
@@ -417,7 +452,7 @@ export default function Leaderboard({
           {/* Rank 1 (Gold - Hero center, larger, green accent) */}
           {top1 && (
             <div
-              className="p-6 border flex flex-col items-center text-center relative transition-transform hover:-translate-y-0.5 shadow-md cursor-pointer"
+              className={`${podiumStudents.length === 1 ? 'md:col-start-2' : 'order-1 md:order-2'} p-6 border flex flex-col items-center text-center relative transition-transform hover:-translate-y-0.5 shadow-md cursor-pointer`}
               onClick={() => setInspectStudent(top1)}
               style={{
                 backgroundColor: 'var(--bg-card)',
@@ -425,7 +460,6 @@ export default function Leaderboard({
                 borderRadius: 'var(--radius-xl, 20px)',
                 animation: 'rowSlideIn 300ms ease-out forwards',
                 animationDelay: '0ms',
-                order: 2,
                 boxShadow: '0 4px 20px rgba(0, 0, 0, 0.25)',
               }}
             >
@@ -454,7 +488,7 @@ export default function Leaderboard({
           {/* Rank 3 (Bronze) */}
           {top3 && (
             <div
-              className="p-5 border flex flex-col items-center text-center transition-transform hover:-translate-y-0.5 cursor-pointer"
+              className="order-3 md:order-3 p-5 border flex flex-col items-center text-center transition-transform hover:-translate-y-0.5 cursor-pointer"
               onClick={() => setInspectStudent(top3)}
               style={{
                 backgroundColor: 'var(--bg-card)',
@@ -462,7 +496,6 @@ export default function Leaderboard({
                 borderRadius: 'var(--radius-lg, 16px)',
                 animation: 'rowSlideIn 300ms ease-out forwards',
                 animationDelay: '300ms',
-                order: 3,
               }}
             >
               <div className="w-9 h-9 rounded-full flex items-center justify-center mb-2" style={{ backgroundColor: 'rgba(205, 124, 74, 0.15)' }}>
@@ -511,7 +544,7 @@ export default function Leaderboard({
               </tr>
             </thead>
             <tbody>
-              {loading && students.length === 0 ? (
+              {loading && allStudents.length === 0 ? (
                 <tr>
                   <td colSpan={6} className="text-center py-12" style={{ color: 'var(--text-muted)' }}>
                     <div className="flex flex-col items-center justify-center gap-2">
@@ -520,8 +553,8 @@ export default function Leaderboard({
                     </div>
                   </td>
                 </tr>
-              ) : students.length > 0 ? (
-                students.map((st, index) => (
+              ) : filteredStudents.length > 0 ? (
+                filteredStudents.map((st, index) => (
                   <LeaderboardRow
                     key={st.id || st.student_id || index}
                     st={st}
@@ -544,9 +577,14 @@ export default function Leaderboard({
 
       {/* Inspect Student Modal */}
       {inspectStudent && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs">
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs animate-fadeIn"
+          onClick={(e) => {
+            if (e.target === e.currentTarget) setInspectStudent(null);
+          }}
+        >
           <div
-            className="w-full max-w-lg rounded-[var(--radius-lg, 16px)] border shadow-2xl p-6"
+            className="w-full max-w-lg rounded-[var(--radius-lg, 16px)] border shadow-2xl p-6 relative"
             style={{
               backgroundColor: 'var(--bg-card)',
               borderColor: 'var(--border)',
@@ -565,7 +603,8 @@ export default function Leaderboard({
               <button
                 type="button"
                 onClick={() => setInspectStudent(null)}
-                className="p-1 rounded cursor-pointer hover:opacity-75"
+                aria-label="Close modal"
+                className="p-1 rounded cursor-pointer hover:opacity-75 transition-opacity"
                 style={{ color: 'var(--text-muted)' }}
               >
                 <X size={18} />
