@@ -1,17 +1,38 @@
-import React, { useState, useMemo } from 'react';
-import { Trophy, Search, Medal, Award, Star, ExternalLink, X } from 'lucide-react';
-import { calculateTotalScore } from '../utils/scoringEngine';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import { Trophy, Search, Medal, Award, X, Loader2, AlertCircle, RefreshCw } from 'lucide-react';
+import { supabase } from '../lib/supabaseClient';
+import { fetchLeaderboard } from '../services/leaderboardService';
 import { useTilt } from '../hooks/useTilt';
 
 function LeaderboardRow({ st, index, currentStudent, setInspectStudent }) {
-  const rank = index + 1;
+  const rank = Number(st.rank) || (index + 1);
   const isTopThree = rank <= 3;
   const tilt = useTilt({ maxTilt: 5 });
 
   const rankClass =
     rank === 1 ? 'rank-1' : rank === 2 ? 'rank-2' : rank === 3 ? 'rank-3' : 'rank-other';
-  const scorePercent = Math.min(st.calculatedVerifiedScore, 100);
-  const isCurrent = currentStudent && (currentStudent.id === st.id || currentStudent.regNo === st.regNo);
+  const score = Number(st.total_verified_score ?? st.totalVerifiedScore ?? 0);
+  const scorePercent = Math.min(score, 100);
+
+  const isCurrent = currentStudent && (
+    (st.student_id && currentStudent.id === st.student_id) ||
+    (st.id && currentStudent.id === st.id) ||
+    (st.reg_no && (currentStudent.regNo === st.reg_no || currentStudent.reg_no === st.reg_no)) ||
+    (st.regNo && (currentStudent.regNo === st.regNo || currentStudent.reg_no === st.regNo))
+  );
+
+  const pendingCount = Number(st.pending_submissions_count ?? st.pendingCount ?? 0);
+  const computedStatus =
+    score > 0 && pendingCount === 0
+      ? 'verified'
+      : pendingCount > 0
+      ? 'pending'
+      : score > 0
+      ? 'verified'
+      : 'unclaimed';
+
+  const displayName = st.full_name || st.name || 'SRM Student';
+  const regNo = st.reg_no || st.regNo || 'RA2411003010000';
 
   return (
     <tr
@@ -24,6 +45,7 @@ function LeaderboardRow({ st, index, currentStudent, setInspectStudent }) {
         '--row-index': index,
         borderBottom: '1px solid var(--border)',
         backgroundColor: isCurrent ? 'var(--sidebar-active-bg)' : undefined,
+        cursor: 'pointer',
       }}
       onClick={() => setInspectStudent(st)}
     >
@@ -45,11 +67,11 @@ function LeaderboardRow({ st, index, currentStudent, setInspectStudent }) {
               color: isCurrent ? 'var(--green-text)' : 'var(--text-primary)',
             }}
           >
-            {(st.name || st.full_name || 'S')[0].toUpperCase()}
+            {(displayName || 'S')[0].toUpperCase()}
           </div>
           <div>
             <span className="font-semibold block" style={{ color: 'var(--text-primary)' }}>
-              {st.name || st.full_name}
+              {displayName}
               {isCurrent && (
                 <span className="ml-1.5 text-[10px] px-1.5 py-0.2 rounded font-medium" style={{ backgroundColor: 'var(--green-light)', color: 'var(--green-text)' }}>
                   You
@@ -67,7 +89,7 @@ function LeaderboardRow({ st, index, currentStudent, setInspectStudent }) {
       <td className="py-3.5 px-4" style={{ color: 'var(--text-secondary)' }}>
         <div>{st.department || 'CSE'} • {st.section || 'Sec A'}</div>
         <div className="font-mono text-[11px]" style={{ color: 'var(--text-muted)' }}>
-          {st.regNo || st.reg_no || 'RA2411003010000'}
+          {regNo}
         </div>
       </td>
 
@@ -101,7 +123,7 @@ function LeaderboardRow({ st, index, currentStudent, setInspectStudent }) {
       {/* Score */}
       <td className="py-3.5 px-4 text-right">
         <span className="font-bold text-sm" style={{ color: 'var(--text-primary)' }}>
-          {st.calculatedVerifiedScore}
+          {score}
         </span>
         <span className="text-[11px]" style={{ color: 'var(--text-muted)' }}>
           {' '}/ 100
@@ -114,15 +136,15 @@ function LeaderboardRow({ st, index, currentStudent, setInspectStudent }) {
           className="status-badge"
           style={{
             backgroundColor:
-              st.computedStatus === 'verified'
+              computedStatus === 'verified'
                 ? 'var(--green-light)'
-                : st.computedStatus === 'pending'
+                : computedStatus === 'pending'
                 ? 'var(--amber-light)'
                 : 'var(--gray-badge-bg)',
             color:
-              st.computedStatus === 'verified'
+              computedStatus === 'verified'
                 ? 'var(--green-text)'
-                : st.computedStatus === 'pending'
+                : computedStatus === 'pending'
                 ? 'var(--amber-text)'
                 : 'var(--gray-badge-text)',
             padding: '2px 8px',
@@ -130,9 +152,9 @@ function LeaderboardRow({ st, index, currentStudent, setInspectStudent }) {
             fontWeight: 500,
           }}
         >
-          {st.computedStatus === 'verified'
+          {computedStatus === 'verified'
             ? 'Verified'
-            : st.computedStatus === 'pending'
+            : computedStatus === 'pending'
             ? 'Pending'
             : 'Unclaimed'}
         </span>
@@ -142,75 +164,108 @@ function LeaderboardRow({ st, index, currentStudent, setInspectStudent }) {
 }
 
 export default function Leaderboard({
-  studentsList = [],
   currentStudent = null,
+  studentsList = [],
 }) {
-  const [searchQuery, setSearchQuery] = useState('');
-  const [deptFilter, setDeptFilter] = useState('all');
+  const [students, setStudents]         = useState([]);
+  const [loading, setLoading]           = useState(true);
+  const [error, setError]               = useState(null);
+  const [searchInput, setSearchInput]   = useState('');
+  const [search, setSearch]             = useState('');
+  const [department, setDepartment]     = useState('All Departments');
+  const [lastUpdated, setLastUpdated]   = useState(null);
+  const [refreshKey, setRefreshKey]     = useState(0);
   const [inspectStudent, setInspectStudent] = useState(null);
 
-  // Compute student scores and ranks using scoringEngine
-  const rankedStudents = useMemo(() => {
-    return (studentsList || [])
-      .map((student) => {
-        const scoreResult = calculateTotalScore(student);
-        const verifiedScore = scoreResult?.totalVerifiedScore ?? 0;
-        const pendingScore = scoreResult?.totalPendingScore ?? 0;
-        const pendingCount = (student.submissions || []).filter(
-          (s) => s.status === 'PENDING' || s.status === 'Pending'
-        ).length;
+  // ── Debounce search input (250ms) ──────────────────────────────────────────
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setSearch(searchInput);
+    }, 250);
+    return () => clearTimeout(timer);
+  }, [searchInput]);
 
-        let status = 'unclaimed';
-        if (verifiedScore > 0 && pendingCount === 0) {
-          status = 'verified';
-        } else if (pendingCount > 0) {
-          status = 'pending';
+  // ── Fetch function — queries public.placement_leaderboard view ─────────────
+  const loadLeaderboard = useCallback(async () => {
+    try {
+      setLoading(true);
+      const data = await fetchLeaderboard({
+        department: department === 'All Departments' ? null : department,
+        search,
+      });
+      setStudents(data);
+      setLastUpdated(new Date());
+      setError(null);
+    } catch (err) {
+      console.error('[Leaderboard] Fetch error:', err);
+      setError(err.message || 'Failed to load leaderboard data.');
+    } finally {
+      setLoading(false);
+    }
+  }, [department, search, refreshKey]);
+
+  // ── Initial & dependency fetch ─────────────────────────────────────────────
+  useEffect(() => {
+    loadLeaderboard();
+  }, [loadLeaderboard]);
+
+  // ── Realtime subscription — refetch when ANY submission or profile changes ─
+  useEffect(() => {
+    const channel = supabase
+      .channel('leaderboard-live-updates')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',                      // INSERT, UPDATE, DELETE
+          schema: 'public',
+          table: 'student_submissions',    // any verification/rejection triggers this
+        },
+        (payload) => {
+          // Only refetch on status changes that affect scores
+          const newStatus = payload.new?.status;
+          const oldStatus = payload.old?.status;
+          const scoreRelevant = newStatus === 'VERIFIED' || oldStatus === 'VERIFIED';
+          if (scoreRelevant || payload.eventType === 'DELETE') {
+            // Brief debounce to let the DB view recalculate
+            setTimeout(() => {
+              setRefreshKey((k) => k + 1);
+            }, 300);
+          }
         }
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'profiles',               // academics or CGPA updates change scores
+        },
+        () => {
+          setTimeout(() => {
+            setRefreshKey((k) => k + 1);
+          }, 300);
+        }
+      )
+      .subscribe();
 
-        return {
-          ...student,
-          calculatedVerifiedScore: verifiedScore,
-          calculatedPendingScore: pendingScore,
-          computedStatus: status,
-        };
-      })
-      .sort((a, b) => b.calculatedVerifiedScore - a.calculatedVerifiedScore);
-  }, [studentsList]);
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, []);
 
-  // Extract unique departments
+  // ── Extract unique departments ─────────────────────────────────────────────
   const departments = useMemo(() => {
-    const s = new Set();
-    studentsList.forEach((st) => {
+    const s = new Set(['All Departments']);
+    (students || []).forEach((st) => {
       if (st.department) s.add(st.department);
     });
     return Array.from(s);
-  }, [studentsList]);
+  }, [students]);
 
-  // Filter students
-  const filteredStudents = useMemo(() => {
-    return rankedStudents.filter((st) => {
-      const name = st.name || st.full_name || '';
-      const reg = st.regNo || st.reg_no || '';
-
-      if (searchQuery.trim()) {
-        const q = searchQuery.toLowerCase();
-        if (!name.toLowerCase().includes(q) && !reg.toLowerCase().includes(q)) {
-          return false;
-        }
-      }
-
-      if (deptFilter !== 'all' && st.department !== deptFilter) {
-        return false;
-      }
-
-      return true;
-    });
-  }, [rankedStudents, searchQuery, deptFilter]);
-
-  // Top 3 Podium Students
-  const top1 = rankedStudents[0];
-  const top2 = rankedStudents[1];
-  const top3 = rankedStudents[2];
+  // ── Derive podium strictly from the same students array (Fix 6) ────────────
+  const top1 = students.find((s) => Number(s.rank) === 1) || students[0];
+  const top2 = students.find((s) => Number(s.rank) === 2) || students[1];
+  const top3 = students.find((s) => Number(s.rank) === 3) || students[2];
 
   return (
     <div className="page-content w-full p-4 sm:p-6 lg:p-7 min-w-0">
@@ -238,6 +293,11 @@ export default function Leaderboard({
             }}
           >
             Verified institutional placement evaluation scores & real-time cohort standings
+            {lastUpdated && (
+              <span className="ml-2 text-[11px] opacity-60">
+                • Updated {lastUpdated.toLocaleTimeString()}
+              </span>
+            )}
           </p>
         </div>
 
@@ -256,16 +316,16 @@ export default function Leaderboard({
             <input
               type="text"
               placeholder="Search student or reg no..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
+              value={searchInput}
+              onChange={(e) => setSearchInput(e.target.value)}
               className="bg-transparent border-none outline-none text-xs w-44"
               style={{ color: 'var(--text-primary)' }}
             />
           </div>
 
           <select
-            value={deptFilter}
-            onChange={(e) => setDeptFilter(e.target.value)}
+            value={department}
+            onChange={(e) => setDepartment(e.target.value)}
             className="border px-3 py-1.5 text-xs outline-none cursor-pointer"
             style={{
               backgroundColor: 'var(--bg-card)',
@@ -274,23 +334,59 @@ export default function Leaderboard({
               color: 'var(--text-primary)',
             }}
           >
-            <option value="all">All Departments</option>
             {departments.map((d) => (
               <option key={d} value={d}>
                 {d}
               </option>
             ))}
           </select>
+
+          <button
+            type="button"
+            onClick={() => setRefreshKey((k) => k + 1)}
+            title="Refresh Leaderboard"
+            className="p-2 border rounded cursor-pointer hover:opacity-80 transition-opacity"
+            style={{
+              backgroundColor: 'var(--bg-card)',
+              borderColor: 'var(--border)',
+              color: 'var(--text-muted)',
+            }}
+          >
+            <RefreshCw size={14} className={loading ? 'animate-spin' : ''} />
+          </button>
         </div>
       </div>
 
+      {/* Error Banner */}
+      {error && (
+        <div
+          className="mb-6 p-3 rounded flex items-center gap-2 text-xs border"
+          style={{
+            backgroundColor: 'rgba(239, 68, 68, 0.1)',
+            borderColor: 'rgba(239, 68, 68, 0.3)',
+            color: '#EF4444',
+          }}
+        >
+          <AlertCircle size={16} />
+          <span>{error}</span>
+          <button
+            type="button"
+            onClick={() => setRefreshKey((k) => k + 1)}
+            className="ml-auto underline font-medium cursor-pointer"
+          >
+            Retry
+          </button>
+        </div>
+      )}
+
       {/* Top 3 Podium Cards (Rank 2 first 150ms, Rank 1 center 0ms hero, Rank 3 right 300ms) */}
-      {rankedStudents.length >= 3 && (
+      {!loading && students.length >= 3 && (
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-7 items-end">
           {/* Rank 2 (Silver) */}
           {top2 && (
             <div
-              className="p-5 border flex flex-col items-center text-center transition-transform hover:-translate-y-0.5"
+              className="p-5 border flex flex-col items-center text-center transition-transform hover:-translate-y-0.5 cursor-pointer"
+              onClick={() => setInspectStudent(top2)}
               style={{
                 backgroundColor: 'var(--bg-card)',
                 borderColor: 'var(--border)',
@@ -305,13 +401,13 @@ export default function Leaderboard({
               </div>
               <span className="rank-number rank-2 text-sm font-semibold text-slate-300">#2 Silver</span>
               <h3 className="font-semibold text-sm mt-1 mb-0.5" style={{ color: 'var(--text-primary)' }}>
-                {top2.name || top2.full_name}
+                {top2.full_name || top2.name}
               </h3>
               <span className="text-[11px]" style={{ color: 'var(--text-muted)' }}>
-                {top2.department} • {top2.regNo || top2.reg_no}
+                {top2.department} • {top2.reg_no || top2.regNo}
               </span>
               <div className="mt-3 text-lg font-bold" style={{ color: 'var(--text-primary)' }}>
-                {top2.calculatedVerifiedScore} <span className="text-xs font-normal" style={{ color: 'var(--text-muted)' }}>/ 100</span>
+                {Number(top2.total_verified_score ?? top2.totalVerifiedScore ?? 0)} <span className="text-xs font-normal" style={{ color: 'var(--text-muted)' }}>/ 100</span>
               </div>
             </div>
           )}
@@ -319,7 +415,8 @@ export default function Leaderboard({
           {/* Rank 1 (Gold - Hero center, larger, green accent) */}
           {top1 && (
             <div
-              className="p-6 border flex flex-col items-center text-center relative transition-transform hover:-translate-y-0.5 shadow-md"
+              className="p-6 border flex flex-col items-center text-center relative transition-transform hover:-translate-y-0.5 shadow-md cursor-pointer"
+              onClick={() => setInspectStudent(top1)}
               style={{
                 backgroundColor: 'var(--bg-card)',
                 borderColor: 'rgba(34, 197, 94, 0.3)',
@@ -341,13 +438,13 @@ export default function Leaderboard({
               </div>
               <span className="rank-number rank-1 text-base font-bold text-amber-400">#1 Gold</span>
               <h3 className="font-bold text-base mt-1 mb-0.5" style={{ color: 'var(--text-primary)' }}>
-                {top1.name || top1.full_name}
+                {top1.full_name || top1.name}
               </h3>
               <span className="text-xs" style={{ color: 'var(--text-muted)' }}>
-                {top1.department} • {top1.regNo || top1.reg_no}
+                {top1.department} • {top1.reg_no || top1.regNo}
               </span>
               <div className="mt-3 text-2xl font-black" style={{ color: 'var(--green-text)' }}>
-                {top1.calculatedVerifiedScore} <span className="text-xs font-normal" style={{ color: 'var(--text-muted)' }}>/ 100</span>
+                {Number(top1.total_verified_score ?? top1.totalVerifiedScore ?? 0)} <span className="text-xs font-normal" style={{ color: 'var(--text-muted)' }}>/ 100</span>
               </div>
             </div>
           )}
@@ -355,7 +452,8 @@ export default function Leaderboard({
           {/* Rank 3 (Bronze) */}
           {top3 && (
             <div
-              className="p-5 border flex flex-col items-center text-center transition-transform hover:-translate-y-0.5"
+              className="p-5 border flex flex-col items-center text-center transition-transform hover:-translate-y-0.5 cursor-pointer"
+              onClick={() => setInspectStudent(top3)}
               style={{
                 backgroundColor: 'var(--bg-card)',
                 borderColor: 'var(--border)',
@@ -370,13 +468,13 @@ export default function Leaderboard({
               </div>
               <span className="rank-number rank-3 text-sm font-semibold text-amber-600">#3 Bronze</span>
               <h3 className="font-semibold text-sm mt-1 mb-0.5" style={{ color: 'var(--text-primary)' }}>
-                {top3.name || top3.full_name}
+                {top3.full_name || top3.name}
               </h3>
               <span className="text-[11px]" style={{ color: 'var(--text-muted)' }}>
-                {top3.department} • {top3.regNo || top3.reg_no}
+                {top3.department} • {top3.reg_no || top3.regNo}
               </span>
               <div className="mt-3 text-lg font-bold" style={{ color: 'var(--text-primary)' }}>
-                {top3.calculatedVerifiedScore} <span className="text-xs font-normal" style={{ color: 'var(--text-muted)' }}>/ 100</span>
+                {Number(top3.total_verified_score ?? top3.totalVerifiedScore ?? 0)} <span className="text-xs font-normal" style={{ color: 'var(--text-muted)' }}>/ 100</span>
               </div>
             </div>
           )}
@@ -411,10 +509,19 @@ export default function Leaderboard({
               </tr>
             </thead>
             <tbody>
-              {filteredStudents.length > 0 ? (
-                filteredStudents.map((st, index) => (
+              {loading && students.length === 0 ? (
+                <tr>
+                  <td colSpan={6} className="text-center py-12" style={{ color: 'var(--text-muted)' }}>
+                    <div className="flex flex-col items-center justify-center gap-2">
+                      <Loader2 size={24} className="animate-spin text-green-500" />
+                      <span className="text-xs font-medium">Loading placement leaderboard...</span>
+                    </div>
+                  </td>
+                </tr>
+              ) : students.length > 0 ? (
+                students.map((st, index) => (
                   <LeaderboardRow
-                    key={st.id || index}
+                    key={st.id || st.student_id || index}
                     st={st}
                     index={index}
                     currentStudent={currentStudent}
@@ -447,10 +554,10 @@ export default function Leaderboard({
             <div className="flex items-start justify-between border-b pb-4 mb-4" style={{ borderColor: 'var(--border)' }}>
               <div>
                 <h3 className="font-semibold text-base m-0" style={{ color: 'var(--text-primary)' }}>
-                  {inspectStudent.name || inspectStudent.full_name}
+                  {inspectStudent.full_name || inspectStudent.name}
                 </h3>
                 <p className="text-xs m-0 mt-0.5" style={{ color: 'var(--text-muted)' }}>
-                  {inspectStudent.department} • {inspectStudent.regNo || inspectStudent.reg_no} • CGPA: {inspectStudent.cgpa || 8.5}
+                  {inspectStudent.department} • {inspectStudent.reg_no || inspectStudent.regNo} • CGPA: {inspectStudent.cgpa || 0}
                 </p>
               </div>
               <button
@@ -467,43 +574,41 @@ export default function Leaderboard({
               <div className="flex items-center justify-between p-3 rounded-[var(--radius)] border" style={{ backgroundColor: 'var(--bg-input)', borderColor: 'var(--border)' }}>
                 <span className="text-xs" style={{ color: 'var(--text-secondary)' }}>Institutional Placement Score:</span>
                 <span className="text-lg font-bold" style={{ color: 'var(--green-text)' }}>
-                  {inspectStudent.calculatedVerifiedScore} / 100
+                  {Number(inspectStudent.total_verified_score ?? inspectStudent.totalVerifiedScore ?? 0)} / 100
                 </span>
               </div>
 
               <div>
                 <h4 className="text-xs font-semibold uppercase tracking-wider mb-2" style={{ color: 'var(--text-secondary)' }}>
-                  Evidence Submissions ({inspectStudent.submissions?.length || 0})
+                  Criteria Score Breakdown (11 Categories)
                 </h4>
-                <div className="max-h-56 overflow-y-auto space-y-2">
-                  {(inspectStudent.submissions || []).map((sub, idx) => (
+                <div className="grid grid-cols-2 gap-2 text-xs">
+                  {[
+                    { label: 'Academics', score: inspectStudent.academics_score, max: 10 },
+                    { label: 'Certifications', score: inspectStudent.skillset_score, max: 15 },
+                    { label: 'GitHub Activity', score: inspectStudent.github_score, max: 15 },
+                    { label: 'Coding Platforms', score: inspectStudent.coding_score, max: 10 },
+                    { label: 'Internships', score: inspectStudent.internship_score, max: 10 },
+                    { label: 'Hackathons', score: inspectStudent.hackathons_score, max: 10 },
+                    { label: 'Assessments', score: inspectStudent.assessments_score, max: 10 },
+                    { label: 'In-House Projects', score: inspectStudent.inhouse_score, max: 8 },
+                    { label: 'Tech Projects', score: inspectStudent.projects_score, max: 5 },
+                    { label: 'Full Stack App', score: inspectStudent.fullstack_score, max: 5 },
+                    { label: 'Memberships', score: inspectStudent.membership_score, max: 2 },
+                  ].map((cat) => (
                     <div
-                      key={sub.id || idx}
-                      className="p-2.5 rounded-[var(--radius)] border flex items-center justify-between gap-2"
+                      key={cat.label}
+                      className="p-2 rounded border flex items-center justify-between"
                       style={{ backgroundColor: 'var(--bg-input)', borderColor: 'var(--border)' }}
                     >
-                      <div>
-                        <div className="font-medium text-xs" style={{ color: 'var(--text-primary)' }}>{sub.title || 'Claim'}</div>
-                        <div className="text-[10px]" style={{ color: 'var(--text-muted)' }}>Category: {sub.category_id || sub.categoryId}</div>
-                      </div>
-                      <span
-                        className="status-badge"
-                        style={{
-                          backgroundColor: sub.status === 'VERIFIED' ? 'var(--green-light)' : 'var(--amber-light)',
-                          color: sub.status === 'VERIFIED' ? 'var(--green-text)' : 'var(--amber-text)',
-                          padding: '2px 8px',
-                          fontSize: '10px',
-                        }}
-                      >
-                        {sub.status || 'PENDING'}
+                      <span className="text-[11px] truncate mr-1" style={{ color: 'var(--text-secondary)' }}>
+                        {cat.label}
+                      </span>
+                      <span className="font-semibold text-[11px] shrink-0" style={{ color: 'var(--text-primary)' }}>
+                        {Number(cat.score || 0)} / {cat.max}
                       </span>
                     </div>
                   ))}
-                  {(!inspectStudent.submissions || inspectStudent.submissions.length === 0) && (
-                    <div className="text-xs text-center py-4" style={{ color: 'var(--text-muted)' }}>
-                      No verified submissions attached yet.
-                    </div>
-                  )}
                 </div>
               </div>
             </div>
