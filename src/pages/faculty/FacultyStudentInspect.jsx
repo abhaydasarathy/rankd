@@ -433,14 +433,8 @@ export default function FacultyStudentInspect() {
     });
   }, [student, submissions]);
 
-  const verifiedScore = Math.max(
-    Number(scoreData?.total_verified_score || 0),
-    engineResult?.totalVerifiedScore || 0
-  );
-  const pendingScore = Math.max(
-    Number(scoreData?.total_pending_score || 0),
-    engineResult?.totalPendingScore || 0
-  );
+  const verifiedScore = engineResult?.totalVerifiedScore ?? 0;
+  const pendingScore = engineResult?.totalPendingScore ?? 0;
   const tier = getPlacementTier(verifiedScore);
 
   const scoreResult = {

@@ -185,13 +185,15 @@ export default function Leaderboard({
     return () => clearTimeout(timer);
   }, [searchInput]);
 
-  // ── Fetch function — queries public.placement_leaderboard view ─────────────
+  // ── Fetch function — queries public.placement_leaderboard & reconciles scores ─────────────
   const loadLeaderboard = useCallback(async () => {
     try {
       setLoading(true);
       const data = await fetchLeaderboard({
         department: department === 'All Departments' ? null : department,
         search,
+        currentStudent,
+        studentsList,
       });
       setStudents(data);
       setLastUpdated(new Date());
@@ -202,7 +204,7 @@ export default function Leaderboard({
     } finally {
       setLoading(false);
     }
-  }, [department, search, refreshKey]);
+  }, [department, search, refreshKey, currentStudent, studentsList]);
 
   // ── Initial & dependency fetch ─────────────────────────────────────────────
   useEffect(() => {
@@ -605,7 +607,7 @@ export default function Leaderboard({
                         {cat.label}
                       </span>
                       <span className="font-semibold text-[11px] shrink-0" style={{ color: 'var(--text-primary)' }}>
-                        {Number(cat.score || 0)} / {cat.max}
+                        {Number(typeof cat.score === 'object' ? (cat.score?.score ?? 0) : (cat.score ?? 0))} / {cat.max}
                       </span>
                     </div>
                   ))}

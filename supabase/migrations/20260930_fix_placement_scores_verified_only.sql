@@ -12,7 +12,7 @@
 -- ============================================================================
 -- STEP 1: Recreate public.student_placement_scores View
 -- ============================================================================
-CREATE OR REPLACE VIEW public.student_placement_scores AS
+CREATE OR REPLACE VIEW public.student_placement_scores WITH (security_invoker = false) AS
 WITH academics_calc AS (
   SELECT
     id AS student_id,
@@ -152,7 +152,7 @@ WHERE p.role = 'student';
 -- ============================================================================
 -- STEP 2: Recreate public.placement_leaderboard View
 -- ============================================================================
-CREATE OR REPLACE VIEW public.placement_leaderboard AS
+CREATE OR REPLACE VIEW public.placement_leaderboard WITH (security_invoker = false) AS
 SELECT
   DENSE_RANK() OVER (
     ORDER BY total_verified_score DESC, cgpa DESC, academics_score DESC, reg_no ASC

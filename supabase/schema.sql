@@ -284,7 +284,7 @@ CREATE INDEX IF NOT EXISTS idx_leetcode_student ON public.leetcode_profiles(stud
 -- ==============================================================================
 
 -- 9.1 Unified Student Placement Scores View
-CREATE OR REPLACE VIEW public.student_placement_scores AS
+CREATE OR REPLACE VIEW public.student_placement_scores WITH (security_invoker = false) AS
 WITH academics_calc AS (
     SELECT 
         id AS student_id,
@@ -424,7 +424,7 @@ LEFT JOIN verified_count vc       ON vc.student_id = p.id
 WHERE p.role = 'student';
 
 -- 9.2 Authoritative Placement Leaderboard View
-CREATE OR REPLACE VIEW public.placement_leaderboard AS
+CREATE OR REPLACE VIEW public.placement_leaderboard WITH (security_invoker = false) AS
 SELECT 
     DENSE_RANK() OVER (
         ORDER BY total_verified_score DESC, cgpa DESC, academics_score DESC, reg_no ASC

@@ -120,14 +120,8 @@ export default function FacultyStudentList() {
           });
 
           const vRow = viewMap[st.id];
-          const verifiedScore = Math.max(
-            Number(vRow?.total_verified_score || 0),
-            calculated.totalVerifiedScore
-          );
-          const pendingScore = Math.max(
-            Number(vRow?.total_pending_score || 0),
-            calculated.totalPendingScore
-          );
+          const verifiedScore = calculated?.totalVerifiedScore ?? 0;
+          const pendingScore = calculated?.totalPendingScore ?? 0;
 
           scoreMap[st.id] = {
             ...(vRow || {}),
