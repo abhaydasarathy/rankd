@@ -320,26 +320,60 @@ WITH academics_calc AS (
     FROM public.profiles
     WHERE role = 'student'
 ),
+verified_only AS (
+  -- This CTE contains ONLY VERIFIED submissions
+  -- PENDING, REJECTED, DRAFT submissions are completely excluded here
+  SELECT
+    student_id,
+    category_id,
+    awarded_marks,
+    status
+  FROM public.student_submissions
+  WHERE status = 'VERIFIED'   -- THE CRITICAL FILTER — only VERIFIED here
+),
 submissions_summary AS (
-    SELECT 
-        student_id,
-        -- Each category: only VERIFIED submissions contribute to the score
-        COALESCE(LEAST(15.0, MAX(CASE WHEN category_id = 'github' AND status = 'VERIFIED' THEN awarded_marks END)), 0) AS github_score,
-        COALESCE(LEAST(10.0, MAX(CASE WHEN category_id IN ('coding-platforms','coding_practice') AND status = 'VERIFIED' THEN awarded_marks END)), 0) AS coding_score,
-        COALESCE(LEAST(10.0, SUM(CASE WHEN category_id = 'internship' AND status = 'VERIFIED' THEN awarded_marks END)), 0) AS internship_score,
-        COALESCE(LEAST(15.0, SUM(CASE WHEN category_id = 'skillset' AND status = 'VERIFIED' THEN awarded_marks END)), 0) AS skillset_score,
-        COALESCE(LEAST(5.0, SUM(CASE WHEN category_id = 'projects' AND status = 'VERIFIED' THEN awarded_marks END)), 0) AS projects_score,
-        COALESCE(LEAST(5.0, MAX(CASE WHEN category_id = 'fullstack' AND status = 'VERIFIED' THEN awarded_marks END)), 0) AS fullstack_score,
-        COALESCE(LEAST(10.0, SUM(CASE WHEN category_id = 'hackathons' AND status = 'VERIFIED' THEN awarded_marks END)), 0) AS hackathons_score,
-        COALESCE(LEAST(8.0, SUM(CASE WHEN category_id = 'inhouse-projects' AND status = 'VERIFIED' THEN awarded_marks END)), 0) AS inhouse_score,
-        COALESCE(LEAST(2.0, MAX(CASE WHEN category_id = 'membership' AND status = 'VERIFIED' THEN awarded_marks END)), 0) AS membership_score,
-        COALESCE(LEAST(10.0, MAX(CASE WHEN category_id = 'assessments' AND status = 'VERIFIED' THEN awarded_marks END)), 0) AS assessments_score,
-        -- Pending: sum of claimed marks from PENDING submissions only
-        COALESCE(SUM(CASE WHEN status = 'PENDING' THEN COALESCE((details->>'calculated_marks')::numeric, awarded_marks) END), 0) AS pending_marks_total,
-        COUNT(CASE WHEN status = 'PENDING' THEN 1 END) AS pending_submissions_count,
-        COUNT(CASE WHEN status = 'VERIFIED' THEN 1 END) AS verified_submissions_count
-    FROM public.student_submissions
-    GROUP BY student_id
+  SELECT
+    student_id,
+    -- GitHub: singleton, take highest verified (max 15m)
+    LEAST(15.0, COALESCE(MAX(CASE WHEN category_id = 'github' THEN awarded_marks END), 0)) AS github_score,
+    -- Coding Platforms: singleton, take highest verified (max 10m)
+    LEAST(10.0, COALESCE(MAX(CASE WHEN category_id IN ('coding-platforms','coding_practice','coding','leetcode') THEN awarded_marks END), 0)) AS coding_score,
+    -- Internship: stackable, sum all verified (max 10m)
+    LEAST(10.0, COALESCE(SUM(CASE WHEN category_id = 'internship' THEN awarded_marks END), 0)) AS internship_score,
+    -- Skillset: stackable, sum all verified (max 15m)
+    LEAST(15.0, COALESCE(SUM(CASE WHEN category_id = 'skillset' THEN awarded_marks END), 0)) AS skillset_score,
+    -- Projects: stackable, sum all verified (max 5m)
+    LEAST(5.0, COALESCE(SUM(CASE WHEN category_id = 'projects' THEN awarded_marks END), 0)) AS projects_score,
+    -- Full Stack: singleton (max 5m)
+    LEAST(5.0, COALESCE(MAX(CASE WHEN category_id = 'fullstack' THEN awarded_marks END), 0)) AS fullstack_score,
+    -- Hackathons: stackable, sum all verified (max 10m)
+    LEAST(10.0, COALESCE(SUM(CASE WHEN category_id = 'hackathons' THEN awarded_marks END), 0)) AS hackathons_score,
+    -- In-House Projects: stackable, sum all verified (max 8m)
+    LEAST(8.0, COALESCE(SUM(CASE WHEN category_id IN ('inhouse-projects','inhouse_projects') THEN awarded_marks END), 0)) AS inhouse_score,
+    -- Membership: singleton (max 2m)
+    LEAST(2.0, COALESCE(MAX(CASE WHEN category_id = 'membership' THEN awarded_marks END), 0)) AS membership_score,
+    -- Assessments: singleton (max 10m)
+    LEAST(10.0, COALESCE(MAX(CASE WHEN category_id = 'assessments' THEN awarded_marks END), 0)) AS assessments_score
+  FROM verified_only
+  GROUP BY student_id
+),
+pending_summary AS (
+  -- Pending marks tracked SEPARATELY — never mixed into verified score
+  SELECT
+    student_id,
+    COALESCE(SUM(COALESCE((details->>'calculated_marks')::numeric, awarded_marks)), 0) AS pending_marks_total,
+    COUNT(*) AS pending_submissions_count
+  FROM public.student_submissions
+  WHERE status = 'PENDING'   -- ONLY PENDING here
+  GROUP BY student_id
+),
+verified_count AS (
+  SELECT
+    student_id,
+    COUNT(*) AS verified_submissions_count
+  FROM public.student_submissions
+  WHERE status = 'VERIFIED'
+  GROUP BY student_id
 )
 SELECT 
     p.id AS student_id,
@@ -353,16 +387,18 @@ SELECT
     p.batch,
     p.cgpa,
     a.academics_score,
-    COALESCE(s.github_score, 0) AS github_score,
-    COALESCE(s.coding_score, 0) AS coding_score,
-    COALESCE(s.internship_score, 0) AS internship_score,
-    COALESCE(s.skillset_score, 0) AS skillset_score,
-    COALESCE(s.projects_score, 0) AS projects_score,
-    COALESCE(s.fullstack_score, 0) AS fullstack_score,
-    COALESCE(s.hackathons_score, 0) AS hackathons_score,
-    COALESCE(s.inhouse_score, 0) AS inhouse_score,
-    COALESCE(s.membership_score, 0) AS membership_score,
+    COALESCE(s.github_score, 0)      AS github_score,
+    COALESCE(s.coding_score, 0)      AS coding_score,
+    COALESCE(s.internship_score, 0)  AS internship_score,
+    COALESCE(s.skillset_score, 0)    AS skillset_score,
+    COALESCE(s.projects_score, 0)    AS projects_score,
+    COALESCE(s.fullstack_score, 0)   AS fullstack_score,
+    COALESCE(s.hackathons_score, 0)  AS hackathons_score,
+    COALESCE(s.inhouse_score, 0)     AS inhouse_score,
+    COALESCE(s.membership_score, 0)  AS membership_score,
     COALESCE(s.assessments_score, 0) AS assessments_score,
+    -- TOTAL VERIFIED SCORE: sum of all category scores, strictly capped at 100
+    -- academics comes from profiles, all others from VERIFIED submissions only
     LEAST(100.0, (
         a.academics_score +
         COALESCE(s.github_score, 0) +
@@ -375,13 +411,16 @@ SELECT
         COALESCE(s.inhouse_score, 0) +
         COALESCE(s.membership_score, 0) +
         COALESCE(s.assessments_score, 0)
+        -- NOTE: pending_marks_total is NEVER added here
     ))::numeric(5,2) AS total_verified_score,
-    COALESCE(s.pending_marks_total, 0) AS total_pending_score,
-    COALESCE(s.pending_submissions_count, 0) AS pending_submissions_count,
-    COALESCE(s.verified_submissions_count, 0) AS verified_submissions_count
+    COALESCE(pend.pending_marks_total, 0)       AS total_pending_score,
+    COALESCE(pend.pending_submissions_count, 0) AS pending_submissions_count,
+    COALESCE(vc.verified_submissions_count, 0)  AS verified_submissions_count
 FROM public.profiles p
-JOIN academics_calc a ON p.id = a.student_id
-LEFT JOIN submissions_summary s ON p.id = s.student_id
+JOIN  academics_calc a   ON a.student_id = p.id
+LEFT JOIN submissions_summary s   ON s.student_id = p.id
+LEFT JOIN pending_summary pend    ON pend.student_id = p.id
+LEFT JOIN verified_count vc       ON vc.student_id = p.id
 WHERE p.role = 'student';
 
 -- 9.2 Authoritative Placement Leaderboard View
