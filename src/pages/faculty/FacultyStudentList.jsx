@@ -270,8 +270,8 @@ export default function FacultyStudentList() {
             borderColor: 'var(--border)',
           }}
         >
-          <div className="overflow-x-auto">
-            <table className="w-full text-left text-xs border-collapse">
+          <div className="faculty-table-wrapper overflow-x-auto">
+            <table className="faculty-student-table w-full text-left text-xs border-collapse">
               <thead>
                 <tr
                   className="border-b uppercase font-semibold text-[11px] tracking-wider"

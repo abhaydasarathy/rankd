@@ -94,7 +94,7 @@ function LeaderboardRow({ st, index, currentStudent, setInspectStudent }) {
       </td>
 
       {/* Thin Score Bar (100px width, 3px height) */}
-      <td className="py-3.5 px-4">
+      <td className="leaderboard-col-progress py-3.5 px-4">
         <div className="flex items-center gap-2">
           <div
             className="overflow-hidden"
@@ -419,11 +419,11 @@ export default function Leaderboard({
 
       {/* Top 3 Podium Cards (Mobile: Gold on top; Desktop: Silver left, Gold center hero, Bronze right) */}
       {!loading && podiumStudents.length > 0 && (
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-7 items-end">
+        <div className="leaderboard-podium grid grid-cols-1 md:grid-cols-3 gap-4 mb-7 items-end">
           {/* Rank 2 (Silver) */}
           {top2 && (
             <div
-              className="order-2 md:order-1 p-5 border flex flex-col items-center text-center transition-transform hover:-translate-y-0.5 cursor-pointer"
+              className="leaderboard-podium-card order-2 md:order-1 p-5 border flex flex-col items-center text-center transition-transform hover:-translate-y-0.5 cursor-pointer"
               onClick={() => setInspectStudent(top2)}
               style={{
                 backgroundColor: 'var(--bg-card)',
@@ -452,7 +452,7 @@ export default function Leaderboard({
           {/* Rank 1 (Gold - Hero center, larger, green accent) */}
           {top1 && (
             <div
-              className={`${podiumStudents.length === 1 ? 'md:col-start-2' : 'order-1 md:order-2'} p-6 border flex flex-col items-center text-center relative transition-transform hover:-translate-y-0.5 shadow-md cursor-pointer`}
+              className={`leaderboard-podium-card ${podiumStudents.length === 1 ? 'md:col-start-2' : 'order-1 md:order-2'} p-6 border flex flex-col items-center text-center relative transition-transform hover:-translate-y-0.5 shadow-md cursor-pointer`}
               onClick={() => setInspectStudent(top1)}
               style={{
                 backgroundColor: 'var(--bg-card)',
@@ -488,7 +488,7 @@ export default function Leaderboard({
           {/* Rank 3 (Bronze) */}
           {top3 && (
             <div
-              className="order-3 md:order-3 p-5 border flex flex-col items-center text-center transition-transform hover:-translate-y-0.5 cursor-pointer"
+              className="leaderboard-podium-card order-3 md:order-3 p-5 border flex flex-col items-center text-center transition-transform hover:-translate-y-0.5 cursor-pointer"
               onClick={() => setInspectStudent(top3)}
               style={{
                 backgroundColor: 'var(--bg-card)',
@@ -518,7 +518,7 @@ export default function Leaderboard({
 
       {/* Leaderboard Table */}
       <div
-        className="overflow-hidden border"
+        className="leaderboard-table-wrapper overflow-hidden border"
         style={{
           backgroundColor: 'var(--bg-card)',
           borderColor: 'var(--border)',
@@ -526,7 +526,7 @@ export default function Leaderboard({
         }}
       >
         <div className="overflow-x-auto">
-          <table className="w-full text-left border-collapse text-xs">
+          <table className="leaderboard-table w-full text-left border-collapse text-xs">
             <thead>
               <tr
                 style={{
@@ -538,7 +538,7 @@ export default function Leaderboard({
                 <th className="py-3 px-4 font-semibold w-16 text-center">Rank</th>
                 <th className="py-3 px-4 font-semibold">Student</th>
                 <th className="py-3 px-4 font-semibold">Department & Reg No</th>
-                <th className="py-3 px-4 font-semibold w-36">Score Progress</th>
+                <th className="leaderboard-col-progress py-3 px-4 font-semibold w-36">Score Progress</th>
                 <th className="py-3 px-4 font-semibold text-right w-24">Score</th>
                 <th className="py-3 px-4 font-semibold text-right w-24">Status</th>
               </tr>

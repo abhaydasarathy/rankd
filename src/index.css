@@ -172,6 +172,11 @@
   --auth-input-focus-glow: 0 0 0 3px rgba(34, 197, 94, 0.1);
 }
 
+/* ── Responsive Breakpoints ── */
+/* Mobile:  max-width 767px  */
+/* Tablet:  768px – 1023px   */
+/* Desktop: 1024px+  (existing layout, no changes) */
+
 * {
   box-sizing: border-box;
 }
@@ -2021,6 +2026,502 @@ a:hover .view-link-arrow {
     display: none !important;
   }
 }
+
+/* ── Sidebar Responsive ── */
+
+/* Tablet: collapse to icon-only rail (64px) — always visible */
+@media (max-width: 1023px) {
+  .sidebar {
+    width: 64px !important;
+    min-width: 64px !important;
+    overflow: hidden;
+  }
+
+  /* Hide text labels, keep icons */
+  .sidebar-label,
+  .sidebar .auth-brand-name,
+  .sidebar .auth-brand-tagline,
+  .sidebar-logo-text,
+  .sidebar-campus-text {
+    display: none !important;
+    opacity: 0 !important;
+    width: 0 !important;
+  }
+
+  /* Center icons in the narrower rail */
+  .nav-item {
+    justify-content: center !important;
+    padding: 10px 0 !important;
+    margin: 2px 8px !important;
+  }
+
+  .nav-item .nav-icon {
+    margin: 0 auto !important;
+  }
+
+  /* Logo: show only the triangle mark */
+  .auth-brand-logo {
+    justify-content: center !important;
+    padding: 16px 0 !important;
+  }
+}
+
+/* Mobile: hide sidebar entirely, show bottom tab bar instead */
+@media (max-width: 767px) {
+  .sidebar {
+    display: none !important;
+  }
+
+  /* Bottom tab bar — fixed to viewport bottom */
+  .mobile-bottom-nav {
+    display: flex !important;
+  }
+}
+
+/* Desktop: bottom nav never shows */
+.mobile-bottom-nav {
+  display: none;
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 60px;
+  background: var(--bg-card);
+  border-top: 1px solid var(--border);
+  z-index: 200;
+  align-items: center;
+  justify-content: space-around;
+  padding: 0 8px;
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+.mobile-nav-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  padding: 6px 12px;
+  border-radius: 8px;
+  cursor: pointer;
+  color: var(--text-muted);
+  font-size: 10px;
+  font-weight: 500;
+  text-decoration: none;
+  transition: color 150ms ease;
+  min-width: 56px;
+}
+
+.mobile-nav-item.active {
+  color: var(--green);
+}
+
+.mobile-nav-item svg {
+  width: 20px;
+  height: 20px;
+}
+
+/* ── Main Content Area Responsive ── */
+
+/* Tablet: sidebar is 64px so shift content accordingly */
+@media (max-width: 1023px) {
+  .main-content {
+    margin-left: 64px !important;
+    transition: margin-left 240ms ease;
+  }
+}
+
+/* Mobile: no sidebar, no left margin, add bottom padding for tab bar */
+@media (max-width: 767px) {
+  .main-content {
+    margin-left: 0 !important;
+    padding-bottom: calc(60px + env(safe-area-inset-bottom, 0px)) !important;
+  }
+}
+
+/* ── TopNav Responsive ── */
+
+@media (max-width: 1023px) {
+  .topnav {
+    left: 64px !important;   /* aligns with tablet sidebar */
+  }
+}
+
+@media (max-width: 767px) {
+  .topnav {
+    left: 0 !important;
+    padding: 0 12px !important;
+  }
+
+  /* Hide search bar on mobile — space is too tight */
+  .search-bar,
+  .topnav-search {
+    display: none !important;
+  }
+
+  /* User chip: show avatar only, no name/reg text */
+  .topnav-user-name,
+  .topnav-user-regno,
+  .topnav-chevron {
+    display: none !important;
+  }
+
+  /* Theme toggle and bell stay visible */
+  .topnav-actions {
+    gap: 8px !important;
+  }
+}
+
+/* ── Overview / Dashboard Layout Responsive ── */
+
+/* Tablet: reduce gap, keep two columns but narrower right panel */
+@media (max-width: 1023px) {
+  .dashboard-grid,
+  .overview-grid {
+    grid-template-columns: 1fr 260px !important;
+    gap: 16px !important;
+    padding: 20px 16px !important;
+  }
+}
+
+/* Mobile: single column, right panel moves below content */
+@media (max-width: 767px) {
+  .dashboard-grid,
+  .overview-grid {
+    grid-template-columns: 1fr !important;
+    gap: 16px !important;
+    padding: 16px 12px !important;
+  }
+
+  /* Score panel stacks below the metrics preview on mobile */
+  .score-panel-column {
+    order: -1;   /* move score ring ABOVE the greeting on mobile for quick visibility */
+  }
+}
+
+/* ── Metric Cards Grid Responsive ── */
+
+/* Tablet: 2 columns */
+@media (max-width: 1023px) {
+  .metrics-grid {
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: 12px !important;
+  }
+}
+
+/* Mobile: 1 column */
+@media (max-width: 767px) {
+  .metrics-grid {
+    grid-template-columns: 1fr !important;
+    gap: 10px !important;
+  }
+
+  /* Metric card: reduce padding on mobile */
+  .metric-card {
+    padding: 14px 16px !important;
+  }
+
+  /* Score number: slightly smaller on mobile */
+  .metric-score-number {
+    font-size: 24px !important;
+  }
+}
+
+/* ── Score Banner Responsive ── */
+
+@media (max-width: 767px) {
+  .score-banner {
+    flex-direction: column !important;
+    align-items: flex-start !important;
+    gap: 12px !important;
+    padding: 16px !important;
+  }
+
+  .score-banner-stats {
+    flex-wrap: wrap !important;
+    gap: 8px !important;
+  }
+
+  .score-banner-pill {
+    font-size: 12px !important;
+    padding: 4px 10px !important;
+  }
+
+  /* Score ring panel inside Overview right column */
+  .score-ring-container {
+    padding: 16px !important;
+  }
+
+  .score-ring-legend {
+    font-size: 13px !important;
+  }
+}
+
+/* ── Category Drawer Responsive ── */
+
+@media (max-width: 767px) {
+  .category-drawer {
+    width: 100% !important;
+    max-width: 100% !important;
+    border-radius: 20px 20px 0 0 !important;  /* sheet slides up from bottom */
+    top: auto !important;
+    bottom: 0 !important;
+    height: 90vh !important;
+    transform: translateY(100%) !important;   /* slide up instead of slide right */
+  }
+
+  .category-drawer.open {
+    transform: translateY(0) !important;
+  }
+
+  /* Closing animation reverses */
+  .category-drawer.closing {
+    transform: translateY(100%) !important;
+  }
+
+  /* Add a drag handle indicator at the top */
+  .category-drawer::before {
+    content: '';
+    display: block;
+    width: 36px;
+    height: 4px;
+    background: var(--border-strong);
+    border-radius: 2px;
+    margin: 12px auto 0;
+    flex-shrink: 0;
+  }
+
+  /* Scroll the drawer content, not the page */
+  .category-drawer {
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+}
+
+@media (min-width: 768px) and (max-width: 1023px) {
+  .category-drawer {
+    width: 420px !important;
+  }
+}
+
+/* ── Leaderboard Responsive ── */
+
+/* Tablet */
+@media (max-width: 1023px) {
+  .leaderboard-podium {
+    gap: 10px !important;
+  }
+
+  .leaderboard-podium-card {
+    padding: 16px 12px !important;
+  }
+}
+
+/* Mobile: podium stacks vertically, table scrolls */
+@media (max-width: 767px) {
+  /* Podium: vertical stack, gold on top */
+  .leaderboard-podium {
+    flex-direction: column !important;
+    align-items: center !important;
+    gap: 10px !important;
+  }
+
+  .leaderboard-podium-card {
+    width: 100% !important;
+    max-width: 320px !important;
+  }
+
+  /* Table: scroll horizontally inside container */
+  .leaderboard-table-wrapper {
+    overflow-x: auto !important;
+    -webkit-overflow-scrolling: touch !important;
+    margin: 0 -12px !important;
+    padding: 0 12px !important;
+  }
+
+  .leaderboard-table {
+    min-width: 600px !important;   /* prevent column squishing */
+  }
+
+  /* Hide Score Progress column on mobile — too narrow */
+  .leaderboard-col-progress {
+    display: none !important;
+  }
+
+  /* Compact rows */
+  .leaderboard-row {
+    padding: 10px 12px !important;
+  }
+}
+
+/* ── Profile Page Responsive ── */
+
+@media (max-width: 1023px) {
+  .profile-grid {
+    grid-template-columns: 1fr !important;
+    gap: 16px !important;
+  }
+}
+
+@media (max-width: 767px) {
+  .profile-grid {
+    padding: 12px !important;
+  }
+
+  /* Academic stat chips: 2 columns instead of 3 */
+  .academic-stats-grid {
+    grid-template-columns: repeat(2, 1fr) !important;
+  }
+
+  .profile-card {
+    padding: 16px !important;
+  }
+}
+
+/* ── Auth Page Responsive ── */
+
+/* Tablet: hide brand panel, show only the card */
+@media (max-width: 1023px) {
+  .auth-brand-panel {
+    display: none !important;
+  }
+
+  .auth-card-wrap {
+    flex: 1 !important;
+    padding: 24px 16px !important;
+  }
+
+  .auth-mobile-logo {
+    display: flex !important;
+  }
+}
+
+/* Mobile: tighter card padding */
+@media (max-width: 767px) {
+  .auth-card {
+    padding: 28px 20px !important;
+    border-radius: 16px !important;
+  }
+
+  .auth-card-wrap {
+    padding: 16px 12px !important;
+    align-items: flex-start !important;
+    padding-top: 32px !important;
+  }
+}
+
+/* ── Faculty Portal Responsive ── */
+
+/* Tablet: sidebar icon rail already handled above */
+@media (max-width: 1023px) {
+  .faculty-pending-queue {
+    padding: 20px 16px !important;
+  }
+
+  .faculty-student-table {
+    overflow-x: auto !important;
+  }
+}
+
+/* Mobile: full-width cards, stack all columns */
+@media (max-width: 767px) {
+  .faculty-pending-queue {
+    padding: 12px !important;
+    /* No bottom tab bar for faculty — add sidebar toggle instead */
+    padding-bottom: 20px !important;
+  }
+
+  .submission-card {
+    padding: 14px !important;
+  }
+
+  /* Faculty table: scroll horizontally */
+  .faculty-student-table {
+    min-width: 560px !important;
+    overflow-x: auto !important;
+    -webkit-overflow-scrolling: touch !important;
+  }
+
+  .faculty-table-wrapper {
+    overflow-x: auto !important;
+    margin: 0 -12px !important;
+    padding: 0 12px !important;
+  }
+}
+
+/* ── Global Mobile Improvements ── */
+
+/* Smooth scrolling everywhere */
+html {
+  scroll-behavior: smooth;
+  -webkit-text-size-adjust: 100%;
+}
+
+/* Safe area for notched phones */
+:root {
+  padding-top: env(safe-area-inset-top, 0px);
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+/* Prevent horizontal overflow on mobile */
+body {
+  overflow-x: hidden;
+}
+
+/* Touch targets: all interactive elements min 44px */
+@media (max-width: 767px) {
+  button,
+  .nav-item,
+  .mobile-nav-item,
+  .auth-tab,
+  input,
+  select {
+    min-height: 44px;
+  }
+
+  /* Larger tap targets for View → links */
+  .metric-card-view-link,
+  [class*="view-link"] {
+    padding: 8px 0 !important;
+    display: inline-block !important;
+  }
+
+  /* Prevent double-tap zoom on buttons */
+  button {
+    touch-action: manipulation;
+  }
+}
+
+/* Disable 3D tilt on touch devices — handled in useTilt.js already */
+@media (pointer: coarse) {
+  .tilt-card {
+    transform: none !important;
+    transition: none !important;
+  }
+  .tilt-gloss {
+    display: none !important;
+  }
+}
+
+/* Wide content inside cards never causes horizontal scroll */
+.metric-card,
+.score-banner,
+.profile-card,
+.submission-card,
+.faculty-pending-card {
+  max-width: 100%;
+  overflow: hidden;
+}
+
+/* Tables that must scroll do so gracefully */
+table {
+  border-collapse: collapse;
+}
+
+.table-scroll-wrapper {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
 
 
 

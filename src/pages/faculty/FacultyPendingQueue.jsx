@@ -403,7 +403,7 @@ export default function FacultyPendingQueue() {
   );
 
   return (
-    <div className="page-content w-full p-4 sm:p-6 lg:p-7 min-w-0">
+    <div className="faculty-pending-queue page-content w-full p-4 sm:p-6 lg:p-7 min-w-0">
       <Toast toast={toast} onClose={() => setToast(null)} />
 
       {/* Header Row */}
@@ -574,7 +574,7 @@ export default function FacultyPendingQueue() {
             return (
               <div
                 key={sub.id}
-                className="p-5 rounded-[var(--radius-lg)] border transition-all"
+                className="submission-card faculty-pending-card p-5 rounded-[var(--radius-lg)] border transition-all"
                 style={{
                   backgroundColor: 'var(--bg-card)',
                   borderColor: 'var(--border)',

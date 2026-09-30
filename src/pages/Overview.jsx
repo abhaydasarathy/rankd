@@ -120,7 +120,7 @@ export default function Overview({
 
   return (
     <div className="page-content min-w-0 w-full">
-      <div className="flex flex-col lg:flex-row items-start gap-6 p-4 sm:p-6 lg:p-7 min-w-0">
+      <div className="dashboard-grid overview-grid flex flex-col lg:flex-row items-start gap-6 p-4 sm:p-6 lg:p-7 min-w-0">
         {/* Left / Center Main Column */}
         <div className="flex-1 flex flex-col min-w-0 w-full">
           
@@ -284,7 +284,7 @@ export default function Overview({
             </div>
 
             {/* 4 Cards Grid (2 columns on tablet/desktop) */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+            <div className="metrics-grid grid grid-cols-1 sm:grid-cols-2 gap-3.5">
               {previewCategories.map((cat, index) => {
                 const normCatId = normalizeCategoryId(cat.id);
                 const catSubmissions = studentSubmissions.filter(
@@ -358,10 +358,12 @@ export default function Overview({
         </div>
 
         {/* Right Column: ScorePanel */}
-        <ScorePanel
-          scoreResult={scoreResult}
-          onOpenProfile={() => navigate('/profile')}
-        />
+        <div className="score-panel-column w-full lg:w-auto">
+          <ScorePanel
+            scoreResult={scoreResult}
+            onOpenProfile={() => navigate('/profile')}
+          />
+        </div>
       </div>
     </div>
   );

@@ -62,7 +62,7 @@ export default function TopNav({
 
   return (
     <header
-      className={`top-nav-header fixed top-0 right-0 z-20 flex items-center justify-between ${
+      className={`topnav top-nav-header fixed top-0 right-0 z-20 flex items-center justify-between ${
         isScrolled ? 'top-nav-scrolled' : ''
       }`}
       style={{
@@ -94,7 +94,7 @@ export default function TopNav({
       {/* Search Bar (Center, Flex-grow) */}
       <div className="flex-1 max-w-xl">
         <div
-          className="search-bar flex items-center gap-2.5"
+          className="search-bar topnav-search flex items-center gap-2.5"
           style={{
             backgroundColor: 'var(--bg-input)',
             border: '1px solid var(--border)',
@@ -119,7 +119,7 @@ export default function TopNav({
       </div>
 
       {/* Right Side Actions */}
-      <div className="flex items-center gap-3 shrink-0">
+      <div className="topnav-actions flex items-center gap-3 shrink-0">
         {/* Theme Toggle Button */}
         <button
           onClick={handleThemeToggle}
@@ -172,15 +172,15 @@ export default function TopNav({
             )}
 
             <div className="hidden sm:flex flex-col text-left leading-tight">
-              <span className="font-semibold text-[13px]" style={{ color: 'var(--text-primary)' }}>
+              <span className="topnav-user-name font-semibold text-[13px]" style={{ color: 'var(--text-primary)' }}>
                 {displayName}
               </span>
-              <span className="font-mono text-[11px]" style={{ color: 'var(--text-muted)' }}>
+              <span className="topnav-user-regno font-mono text-[11px]" style={{ color: 'var(--text-muted)' }}>
                 {displayRegNo}
               </span>
             </div>
 
-            <ChevronDown size={14} style={{ color: 'var(--text-muted)' }} />
+            <ChevronDown size={14} className="topnav-chevron" style={{ color: 'var(--text-muted)' }} />
           </button>
 
           {/* User Dropdown Menu */}

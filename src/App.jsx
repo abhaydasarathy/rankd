@@ -5,6 +5,7 @@ import { AuthProvider, useAuth } from './context/AuthContext';
 import AuthPage from './components/AuthPage';
 import Sidebar from './components/Sidebar';
 import TopNav from './components/TopNav';
+import MobileBottomNav from './components/MobileBottomNav';
 import Overview from './pages/Overview';
 import MyMetrics from './pages/MyMetrics';
 import Leaderboard from './pages/Leaderboard';
@@ -733,6 +734,9 @@ function PortalShell() {
           onClose={() => setToast(null)}
         />
       )}
+
+      {/* 7. Mobile Bottom Navigation (Students only, self-hides on desktop via CSS) */}
+      {!isFacultyRole && <MobileBottomNav />}
     </div>
   );
 }

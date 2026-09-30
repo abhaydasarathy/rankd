@@ -130,10 +130,10 @@ export default function ScoreBanner({
         </div>
 
         {/* Right: Three Stat Pills Inline */}
-        <div className="flex flex-wrap items-center gap-2.5">
+        <div className="score-banner-stats flex flex-wrap items-center gap-2.5">
           {/* Verified Pill */}
           <div
-            className="flex items-center gap-1.5 border"
+            className="score-banner-pill flex items-center gap-1.5 border"
             style={{
               backgroundColor: 'var(--bg-input)',
               borderColor: 'var(--border)',
@@ -153,7 +153,7 @@ export default function ScoreBanner({
 
           {/* Pending Pill */}
           <div
-            className="flex items-center gap-1.5 border"
+            className="score-banner-pill flex items-center gap-1.5 border"
             style={{
               backgroundColor: 'var(--bg-input)',
               borderColor: 'var(--border)',
@@ -173,7 +173,7 @@ export default function ScoreBanner({
 
           {/* Unclaimed Pill */}
           <div
-            className="flex items-center gap-1.5 border"
+            className="score-banner-pill flex items-center gap-1.5 border"
             style={{
               backgroundColor: 'var(--bg-input)',
               borderColor: 'var(--border)',

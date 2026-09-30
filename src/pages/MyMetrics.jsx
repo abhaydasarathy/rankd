@@ -219,7 +219,7 @@ export default function MyMetrics({
       </div>
 
       {/* 3. Full-Width Metrics Grid (3 columns on xl desktop) */}
-      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3.5">
+      <div className="metrics-grid grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3.5">
         {filteredCategories.map(({ cat, catSubmissions, verifiedMarks, pendingMarks }, index) => (
           <MetricCard
             key={cat.id}

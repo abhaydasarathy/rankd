@@ -329,10 +329,10 @@ export default function Profile({
       />
 
       {/* 2. Profile Details Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <div className="profile-grid grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Left: Identity Card */}
         <div
-          className="p-6 border flex flex-col items-center text-center"
+          className="profile-card p-6 border flex flex-col items-center text-center"
           style={{
             backgroundColor: 'var(--bg-card)',
             borderColor: 'var(--border)',
@@ -395,7 +395,7 @@ export default function Profile({
         <div className="lg:col-span-2 space-y-6">
           {/* Academic Records */}
           <div
-            className="p-6 border"
+            className="profile-card p-6 border"
             style={{
               backgroundColor: 'var(--bg-card)',
               borderColor: 'var(--border)',
@@ -405,7 +405,7 @@ export default function Profile({
             <h3 className="text-sm font-semibold uppercase tracking-wider mb-4" style={{ color: 'var(--text-secondary)' }}>
               Verified Academic Records
             </h3>
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3.5">
+            <div className="academic-stats-grid grid grid-cols-1 sm:grid-cols-3 gap-3.5">
               <div
                 ref={cgpaTilt.ref}
                 onMouseMove={cgpaTilt.onMouseMove}
