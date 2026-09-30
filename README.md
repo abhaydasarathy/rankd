@@ -124,7 +124,7 @@ graph TD
   2. 12th / Diploma Academic Percentage
   3. 10th Academic Percentage
   4. Institutional Registration Number (`RA2411...`)
-- **Tier Categorization**: Visual indicators for **Super Dream (90+ marks)**, **Dream (75–89 marks)**, and **Core Eligible (60–74 marks)** tiers.
+- **Continuous Evaluation**: Clean real-time placement score ranking and metrics based on verified claims across the 100-mark rubric.
 
 ### 4. Automated LeetCode & GitHub Sync
 - Connects directly to LeetCode's public GraphQL API via serverless Edge Functions to retrieve real-time solved counts across Easy, Medium, and Hard problems.
@@ -136,6 +136,7 @@ graph TD
 
 - **Domain Restriction**: Authentication strictly enforces SRMIST email addresses ending in `@srmist.edu.in`.
 - **Registration Format**: Student IDs are validated against official SRMIST matriculation format (`RA2411...`).
+- **Password Policy**: Minimum 8 characters required without arbitrary complexity barriers.
 - **Superseding Submission Pattern**: Submitting an updated claim for an already pending activity automatically supersedes older claims, preventing queue congestion and duplicate credit.
 - **Credential Hygiene**: Git tracking strictly isolates all `.env` files and `.agents/` configuration tokens.
 
