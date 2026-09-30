@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Building2, User, Calendar, Award, Sparkles } from 'lucide-react';
+import { Building2, User, Calendar, Award } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useTiltSubtle } from '../hooks/useTilt';
 
@@ -142,15 +142,6 @@ export default function ScorePanel({
           >
             Overall Placement Score
           </h2>
-
-          {/* Tier Badge — Enters ~900ms after score ring start */}
-          <div
-            className={`tier-badge-enter inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold border ${tierInfo.badgeColor}`}
-            title={`Placement Rubric Tier: ${tierInfo.name}`}
-          >
-            <Sparkles size={11} className="shrink-0" />
-            <span>{tierInfo.shortName || tierInfo.name}</span>
-          </div>
         </div>
 
         <div className="flex items-center justify-between gap-4">

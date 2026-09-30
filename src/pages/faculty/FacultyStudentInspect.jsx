@@ -273,6 +273,8 @@ function extractAllDocuments(sub) {
   return [];
 }
 
+const extractProofDocs = extractAllDocuments;
+
 function formatFileSize(bytes) {
   if (!bytes || bytes === 0) return 'Document';
   const k = 1024;
@@ -859,7 +861,7 @@ export default function FacultyStudentInspect() {
                             {cat.catSubmissions.map((subItem) => {
                               const isSubPending = (subItem.status || '').toUpperCase() === 'PENDING';
                               const isSubVerified = (subItem.status || '').toUpperCase() === 'VERIFIED';
-                              const proofDocs = extractProofDocs(subItem);
+                              const proofDocs = extractAllDocuments(subItem);
 
                               return (
                                 <div
