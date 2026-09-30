@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { useTilt } from '../hooks/useTilt';
+import { useTiltSubtle } from '../hooks/useTilt';
 
 export default function ScoreBanner({
   score = 0,
@@ -70,7 +70,7 @@ export default function ScoreBanner({
   }, [score]);
 
   const renderedScore = (displayScore === 0 && (score || 0) > 0) ? score : displayScore;
-  const tilt = useTilt();
+  const tilt = useTiltSubtle();
 
   return (
     <div

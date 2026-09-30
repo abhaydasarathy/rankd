@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Building2, User, Calendar, Award, Sparkles } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { getPlacementTier } from '../utils/scoringEngine';
-import { useTilt } from '../hooks/useTilt';
+import { useTiltSubtle } from '../hooks/useTilt';
 
 export default function ScorePanel({
   scoreResult = {},
@@ -114,7 +114,7 @@ export default function ScorePanel({
     .map((n) => n[0].toUpperCase())
     .join('') || 'U';
 
-  const scoreTilt = useTilt();
+  const scoreTilt = useTiltSubtle();
 
   return (
     <aside
