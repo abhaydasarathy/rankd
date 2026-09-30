@@ -1,7 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Building2, User, Calendar, Award, Sparkles } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
-import { getPlacementTier } from '../utils/scoringEngine';
 import { useTiltSubtle } from '../hooks/useTilt';
 
 export default function ScorePanel({
@@ -17,7 +16,6 @@ export default function ScorePanel({
   const pendingScore = scoreResult?.totalPendingScore ?? 0;
   const totalScore = Math.min(100, Number((verifiedScore + pendingScore).toFixed(2)));
   const unclaimedScore = Math.max(0, Number((100 - totalScore).toFixed(2)));
-  const tierInfo = scoreResult?.tier || getPlacementTier(verifiedScore);
 
   // Donut chart math
   const radius = 52;

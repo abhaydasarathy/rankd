@@ -822,42 +822,13 @@ export function calculateTotalScore(studentData) {
 }
 
 export function getPlacementTier(verifiedScore = 0) {
-  const score = Number(verifiedScore) || 0;
-  if (score >= 80) {
-    return {
-      tier: 'super_dream',
-      name: 'Super Dream',
-      shortName: 'Super',
-      minScore: 80,
-      badgeColor: 'text-emerald-500 bg-emerald-500/10 border-emerald-500/20',
-      tag: 'Tier 1'
-    };
-  } else if (score >= 60) {
-    return {
-      tier: 'dream',
-      name: 'Dream',
-      shortName: 'Dream',
-      minScore: 60,
-      badgeColor: 'text-indigo-400 bg-indigo-500/10 border-indigo-500/20',
-      tag: 'Tier 2'
-    };
-  } else if (score >= 40) {
-    return {
-      tier: 'eligible',
-      name: 'Eligible',
-      shortName: 'Eligible',
-      minScore: 40,
-      badgeColor: 'text-amber-400 bg-amber-500/10 border-amber-500/20',
-      tag: 'Core'
-    };
-  }
   return {
-    tier: 'needs_improvement',
-    name: 'Needs Improvement',
-    shortName: 'Needs Improvement',
+    tier: '',
+    name: '',
+    shortName: '',
     minScore: 0,
-    badgeColor: 'text-neutral-400 bg-neutral-500/10 border-neutral-500/20',
-    tag: 'Building'
+    badgeColor: '',
+    tag: ''
   };
 }
 

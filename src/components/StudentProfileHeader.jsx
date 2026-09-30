@@ -8,19 +8,9 @@ export default function StudentProfileHeader({ user, onOpenProfile }) {
   const pendingScore = scoreResult?.totalPendingScore ?? 0;
   const totalScore = Math.min(100, Number((verifiedScore + pendingScore).toFixed(2)));
 
-  // Dynamic Tier Eligibility based on verified score
-  let eligibilityTier = "Registered";
-  let tierColor = "var(--text-secondary)";
-  if (verifiedScore >= 80) {
-    eligibilityTier = "Super Dream (20+ LPA)";
-    tierColor = "var(--color-verified)";
-  } else if (verifiedScore >= 60) {
-    eligibilityTier = "Dream Tier (10+ LPA)";
-    tierColor = "var(--accent-color)";
-  } else if (verifiedScore >= 40) {
-    eligibilityTier = "Core Eligible (5+ LPA)";
-    tierColor = "var(--color-pending)";
-  }
+  // Placement status based on verified score
+  const isVerified = verifiedScore > 0;
+  const placementStatus = isVerified ? "Placement Active" : "Registered";
 
   const name = user?.name || user?.full_name || "Student";
   const regNo = user?.regNo || user?.reg_no || "—";
@@ -50,10 +40,10 @@ export default function StudentProfileHeader({ user, onOpenProfile }) {
                 style={{ 
                   backgroundColor: 'var(--bg-elevated)', 
                   borderColor: 'var(--border-color)', 
-                  color: tierColor 
+                  color: isVerified ? 'var(--color-verified)' : 'var(--text-secondary)' 
                 }}
               >
-                {eligibilityTier}
+                {placementStatus}
               </span>
               {onOpenProfile && (
                 <button 

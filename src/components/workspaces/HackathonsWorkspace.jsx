@@ -347,7 +347,7 @@ export default function HackathonsWorkspace({
 
               <div className="space-y-1.5">
                 <label className="text-xs font-semibold" style={{ color: 'var(--text-primary)' }}>
-                  Award / Placement Tier
+                  Award / Placement Standing
                 </label>
                 <select
                   value={placement}

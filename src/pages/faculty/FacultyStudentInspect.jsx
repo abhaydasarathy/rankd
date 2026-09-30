@@ -34,7 +34,7 @@ import {
   Eye,
   Check,
 } from 'lucide-react';
-import { getPlacementTier, calculateTotalScore } from '../../utils/scoringEngine';
+import { calculateTotalScore } from '../../utils/scoringEngine';
 import { PLACEMENT_CATEGORIES } from '../../data/categories';
 import { normalizeCategoryId } from '../../services';
 
@@ -437,12 +437,10 @@ export default function FacultyStudentInspect() {
 
   const verifiedScore = engineResult?.totalVerifiedScore ?? 0;
   const pendingScore = engineResult?.totalPendingScore ?? 0;
-  const tier = getPlacementTier(verifiedScore);
 
   const scoreResult = {
     totalVerifiedScore: verifiedScore,
     totalPendingScore: pendingScore,
-    tier,
     categoryScores: engineResult?.categoryScores || {},
   };
 
@@ -510,13 +508,6 @@ export default function FacultyStudentInspect() {
           <ArrowLeft size={14} />
           Back to My Students
         </button>
-
-        <span
-          className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold border ${tier.badgeColor}`}
-        >
-          <Sparkles size={11} />
-          {tier.name}
-        </span>
       </div>
 
       {loading ? (

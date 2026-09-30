@@ -19,19 +19,12 @@ export default function HeroBanner({ user, activeFilter, setActiveFilter, onOpen
   const totalScore = Math.min(100, verifiedScore + pendingScore);
   const remainingMarks = Math.max(0, 100 - totalScore);
 
-  // Dynamic Tier Eligibility calculation
-  let eligibilityTier = "Placement Registered";
-  let tierBadgeColor = "text-indigo-400 bg-indigo-500/10 border-indigo-500/20";
-  if (verifiedScore >= 80) {
-    eligibilityTier = "Super Dream (20+ LPA)";
-    tierBadgeColor = "text-emerald-400 bg-emerald-500/10 border-emerald-500/20";
-  } else if (verifiedScore >= 60) {
-    eligibilityTier = "Dream Tier (10+ LPA)";
-    tierBadgeColor = "text-indigo-300 bg-indigo-500/10 border-indigo-500/20";
-  } else if (verifiedScore >= 40) {
-    eligibilityTier = "Core Eligible (5+ LPA)";
-    tierBadgeColor = "text-amber-300 bg-amber-500/10 border-amber-500/20";
-  }
+  // Placement Status calculation
+  const isVerified = verifiedScore > 0;
+  const placementStatus = isVerified ? "Placement Active" : "Registered";
+  const statusBadgeColor = isVerified
+    ? "text-emerald-400 bg-emerald-500/10 border-emerald-500/20"
+    : "text-slate-400 bg-slate-500/10 border-slate-500/20";
 
   return (
     <section className="mb-8">
@@ -110,12 +103,12 @@ export default function HeroBanner({ user, activeFilter, setActiveFilter, onOpen
                 </div>
               </div>
 
-              {/* Dynamic Status Badge */}
-              <div className={`flex items-center gap-2 px-3 py-1.5 rounded-xl border self-start sm:self-auto ${tierBadgeColor}`}>
+              {/* Placement Status Badge */}
+              <div className={`flex items-center gap-2 px-3 py-1.5 rounded-xl border self-start sm:self-auto ${statusBadgeColor}`}>
                 <ShieldCheck className="w-4 h-4" />
                 <div className="text-left">
                   <div className="text-[10px] uppercase font-bold tracking-wider">Placement Status</div>
-                  <div className="text-[11px] font-semibold">{eligibilityTier}</div>
+                  <div className="text-[11px] font-semibold">{placementStatus}</div>
                 </div>
               </div>
             </div>

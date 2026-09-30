@@ -671,9 +671,10 @@ export default function FacultyDashboard({
       if (sectionFilter !== 'all' && st.section !== sectionFilter) return false;
 
       const score = st.calculatedVerifiedScore;
-      if (scoreRangeFilter === 'super_dream' && score < 80) return false;
-      if (scoreRangeFilter === 'dream' && (score < 60 || score >= 80)) return false;
-      if (scoreRangeFilter === 'eligible' && (score < 40 || score >= 60)) return false;
+      if (scoreRangeFilter === '80_plus' && score < 80) return false;
+      if (scoreRangeFilter === '60_79' && (score < 60 || score >= 80)) return false;
+      if (scoreRangeFilter === '40_59' && (score < 40 || score >= 60)) return false;
+      if (scoreRangeFilter === 'below_40' && score >= 40) return false;
 
       if (statusTab === 'verified' && st.computedStatus !== 'verified') return false;
       if (statusTab === 'pending' && st.computedStatus !== 'pending') return false;
@@ -1015,10 +1016,11 @@ export default function FacultyDashboard({
                     color: 'var(--text-primary)',
                   }}
                 >
-                  <option value="all">All Score Tiers</option>
-                  <option value="super_dream">Super Dream (80+ Marks)</option>
-                  <option value="dream">Dream (60–79 Marks)</option>
-                  <option value="eligible">Eligible (40–59 Marks)</option>
+                  <option value="all">All Score Ranges</option>
+                  <option value="80_plus">80+ Marks</option>
+                  <option value="60_79">60–79 Marks</option>
+                  <option value="40_59">40–59 Marks</option>
+                  <option value="below_40">&lt; 40 Marks</option>
                 </select>
               </div>
 

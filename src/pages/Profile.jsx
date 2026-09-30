@@ -468,7 +468,7 @@ export default function Profile({
                 <strong style={{ color: 'var(--text-primary)' }}>Campus:</strong> SRM Institute of Science and Technology, Kattankulathur (KTR)
               </p>
               <p className="m-0">
-                <strong style={{ color: 'var(--text-primary)' }}>Status:</strong> Active candidate eligible for Tier-1 Super Dream placements
+                <strong style={{ color: 'var(--text-primary)' }}>Status:</strong> Active candidate enrolled in placement evaluation
               </p>
             </div>
           </div>

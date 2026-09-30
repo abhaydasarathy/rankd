@@ -28,7 +28,7 @@ import {
   CheckSquare,
   AlertCircle,
 } from 'lucide-react';
-import { getPlacementTier, calculateTotalScore } from '../../utils/scoringEngine';
+import { calculateTotalScore } from '../../utils/scoringEngine';
 import { PLACEMENT_CATEGORIES } from '../../data/categories';
 
 function GithubIcon({ size = 18, className = 'w-4 h-4 shrink-0', ...props }) {
@@ -169,7 +169,6 @@ export default function FacultyStudentList() {
   const activeVerified = Number(activeStudentScoreData.total_verified_score || 0);
   const activePending = Number(activeStudentScoreData.total_pending_score || 0);
   const activeUnclaimed = Math.max(0, 100 - activeVerified - activePending);
-  const activeTier = getPlacementTier(activeVerified);
 
   return (
     <div className="page-content w-full p-4 sm:p-6 lg:p-7 min-w-0">
@@ -288,7 +287,6 @@ export default function FacultyStudentList() {
                   <th className="py-3 px-4 text-center">CGPA</th>
                   <th className="py-3 px-4 text-right">Verified Score & Metrics</th>
                   <th className="py-3 px-4 text-right">Pending Claims</th>
-                  <th className="py-3 px-4 text-center">Placement Tier</th>
                   <th className="py-3 px-4 text-right">Evaluation</th>
                 </tr>
               </thead>
@@ -297,7 +295,6 @@ export default function FacultyStudentList() {
                   const studentScore = scores[st.id] || {};
                   const verifiedScore = Number(studentScore.total_verified_score || 0);
                   const pendingScore = Number(studentScore.total_pending_score || 0);
-                  const tier = getPlacementTier(verifiedScore);
 
                   const studentName = st.name || st.full_name || 'Student';
                   const initials =
@@ -401,16 +398,6 @@ export default function FacultyStudentList() {
                         )}
                       </td>
 
-                      {/* Tier Badge */}
-                      <td className="py-3 px-4 text-center">
-                        <span
-                          className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold border ${tier.badgeColor}`}
-                        >
-                          <Sparkles size={9} />
-                          {tier.shortName || tier.name}
-                        </span>
-                      </td>
-
                       {/* Action */}
                       <td className="py-3 px-4 text-right">
                         <button
@@ -480,12 +467,6 @@ export default function FacultyStudentList() {
                     <h2 className="text-base font-bold m-0" style={{ color: 'var(--text-primary)' }}>
                       {selectedStudentForMetrics.full_name || selectedStudentForMetrics.name}
                     </h2>
-                    <span
-                      className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold border ${activeTier.badgeColor}`}
-                    >
-                      <Sparkles size={9} />
-                      {activeTier.name}
-                    </span>
                   </div>
                   <div className="text-xs font-mono flex items-center gap-2 mt-0.5" style={{ color: 'var(--text-muted)' }}>
                     <span>{selectedStudentForMetrics.reg_no || 'Reg No Pending'}</span>
