@@ -112,6 +112,8 @@ export default function InternshipWorkspace({
         calculatedMarks: d.calculated_marks || 0,
         verifierNotes: sub.verifier_notes || '',
         submittedAt: sub.submitted_at || sub.created_at,
+        aiMetadata: d.ai_metadata || null,
+        documentExtraction: d.document_extraction || d.extracted_fields || null,
       };
     });
   }, [internshipSubs]);
@@ -261,10 +263,11 @@ export default function InternshipWorkspace({
                     </div>
                   </div>
 
-                  <div className="flex items-center gap-2 shrink-0">
+                  <div className="flex flex-col items-end gap-1 shrink-0">
                     {item.status === 'VERIFIED' && (
-                      <span className="text-xs font-semibold px-2.5 py-1 rounded-full text-emerald-400 bg-emerald-500/10 border border-emerald-500/20">
-                        ✓ Verified (+{item.awardedMarks || item.calculatedMarks}m)
+                      <span className="text-xs font-semibold px-2.5 py-1 rounded-full text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 flex items-center gap-1">
+                        <span>✓ Automatically processed</span>
+                        <span className="font-bold">(+{item.awardedMarks || item.calculatedMarks}m)</span>
                       </span>
                     )}
                     {item.status === 'PENDING' && (
@@ -276,6 +279,14 @@ export default function InternshipWorkspace({
                       <span className="text-xs font-semibold px-2.5 py-1 rounded-full text-red-400 bg-red-500/10 border border-red-500/20">
                         Changes Requested
                       </span>
+                    )}
+
+                    {/* PART 4: Low-confidence Informational Warning Notice */}
+                    {item.status === 'VERIFIED' && (item.aiMetadata?.has_low_confidence || (item.documentExtraction && (item.documentExtraction.confidence < 0.70 || (item.documentExtraction.warnings && item.documentExtraction.warnings.length > 0)))) && (
+                      <div className="mt-1 p-2 rounded text-[11px] bg-amber-500/10 border border-amber-500/20 text-amber-300 flex items-center gap-1.5 max-w-xs">
+                        <AlertCircle size={12} className="shrink-0 text-amber-400" />
+                        <span>⚠ AI Review Notice: Some information extracted from this document has lower confidence. The score has been applied automatically.</span>
+                      </div>
                     )}
                   </div>
                 </div>
@@ -452,7 +463,9 @@ export default function InternshipWorkspace({
               studentId={studentId}
               title="INTERNSHIP PROOF DOCUMENTS"
               required={true}
-              helperText="Attach Offer Letter, Completion Certificate, or Experience Letter (Max 10MB each)"
+              helperText="Attach Offer Letter, Completion Certificate, or Experience Letter as JPG/PNG (Max 10MB each)"
+              accept=".png,.jpg,.jpeg,image/png,image/jpeg"
+              allowedTypes={['image/jpeg', 'image/jpg', 'image/png']}
             />
           </div>
 

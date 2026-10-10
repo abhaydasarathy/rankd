@@ -493,6 +493,7 @@ CREATE POLICY "Public read placement categories" ON public.placement_categories 
 DROP POLICY IF EXISTS "Select submissions policy" ON public.student_submissions;
 DROP POLICY IF EXISTS "Student insert own submissions" ON public.student_submissions;
 DROP POLICY IF EXISTS "Update submissions policy" ON public.student_submissions;
+DROP POLICY IF EXISTS "Student delete own submissions" ON public.student_submissions;
 
 CREATE POLICY "Select submissions policy" ON public.student_submissions FOR SELECT USING (
     student_id = auth.uid() 
@@ -510,6 +511,15 @@ CREATE POLICY "Update submissions policy" ON public.student_submissions FOR UPDA
     OR EXISTS (
         SELECT 1 FROM public.profiles WHERE id = auth.uid() AND role IN ('faculty', 'admin')
     )
+) WITH CHECK (
+    student_id = auth.uid()
+    OR EXISTS (
+        SELECT 1 FROM public.profiles WHERE id = auth.uid() AND role IN ('faculty', 'admin')
+    )
+);
+
+CREATE POLICY "Student delete own submissions" ON public.student_submissions FOR DELETE USING (
+    student_id = auth.uid()
 );
 
 -- 10.4 Submission Proofs Policies

@@ -1,6 +1,7 @@
 import { supabase, isSupabaseConfigured } from "../lib/supabaseClient.js";
 import { normalizeCategoryId } from "./categoryService.js";
 import { uploadProofDocument } from "./proofService.js";
+import { extractInternshipDocument, evaluateAndAutoScoreInternship } from "./documentExtractionService.js";
 
 /**
  * Normalize certification provider to match database check constraint:
@@ -162,13 +163,74 @@ export async function upsertStudentSubmission({
   }
 
   const finalDetails = { ...(details || {}) };
+
+  let submissionStatus = 'PENDING';
+  let marks = calculatedMarks !== undefined ? Number(calculatedMarks) : Number(finalDetails.calculated_marks || 0);
+
+  // Document Extraction & Automatic Verification Layer for Internship Submissions
+  if (normCat === "internship") {
+    try {
+      const docRef = proofUrl || (Array.isArray(finalDetails.proofDocuments) ? finalDetails.proofDocuments[0] : null) || finalDetails.proof_url || null;
+      if (docRef) {
+        let extractedResult = finalDetails.document_extraction || finalDetails.extracted_fields;
+        if (!extractedResult) {
+          extractedResult = await extractInternshipDocument(docRef, { studentId });
+          finalDetails.document_extraction = extractedResult;
+          finalDetails.extracted_fields = extractedResult;
+        }
+
+        const autoResult = evaluateAndAutoScoreInternship(extractedResult, finalDetails);
+        if (autoResult.isAutoVerified) {
+          submissionStatus = 'VERIFIED';
+          marks = autoResult.calculatedMarks;
+          
+          // Data normalization: AI extraction is authoritative
+          finalDetails.companyName = extractedResult.company_name || finalDetails.companyName;
+          finalDetails.company = finalDetails.companyName;
+          finalDetails.role = extractedResult.internship_role || finalDetails.role;
+          finalDetails.durationMonths = extractedResult.duration_months !== null && extractedResult.duration_months !== undefined ? extractedResult.duration_months : finalDetails.durationMonths;
+          finalDetails.duration = finalDetails.durationMonths;
+          
+          if (extractedResult.paid_status === "Paid") {
+            finalDetails.isPaid = true;
+          } else if (extractedResult.paid_status === "Unpaid") {
+            finalDetails.isPaid = false;
+          } else {
+            finalDetails.isPaid = null;
+          }
+          
+          finalDetails.tier = extractedResult.company_category_if_confident || null;
+          
+          // Rebuild title with authoritative data
+          title = `${finalDetails.companyName} (${finalDetails.tier || 'UNKNOWN'}) — ${finalDetails.durationMonths} Mo${finalDetails.durationMonths > 1 ? 's' : ''}`;
+
+          finalDetails.calculated_marks = autoResult.calculatedMarks;
+          finalDetails.ai_metadata = {
+            confidence: extractedResult.confidence,
+            warnings: extractedResult.warnings || [],
+            model: extractedResult.model_used || 'gemini-1.5-flash',
+            is_auto_verified: true,
+            has_low_confidence: autoResult.hasLowConfidence,
+          };
+        } else {
+          submissionStatus = 'PENDING';
+          finalDetails.ai_metadata = {
+            confidence: 0,
+            error: extractedResult.processing_error || 'AI document processing failed',
+            is_auto_verified: false,
+          };
+        }
+      }
+    } catch (extErr) {
+      console.warn("Notice: Document extraction non-fatal exception recorded:", extErr);
+    }
+  }
+
   if (calculatedMarks !== undefined && finalDetails.calculated_marks === undefined) {
     finalDetails.calculated_marks = calculatedMarks;
   }
 
-  const marks = calculatedMarks !== undefined ? Number(calculatedMarks) : Number(finalDetails.calculated_marks || 0);
-
-  // Step 2: Insert new PENDING submission
+  // Step 2: Insert submission row (VERIFIED for successful AI internship, PENDING for others)
   const { data, error } = await supabase
     .from('student_submissions')
     .insert({
@@ -178,7 +240,8 @@ export async function upsertStudentSubmission({
       details: finalDetails,
       proof_url: proofUrl || null,
       awarded_marks: marks || 0,
-      status: 'PENDING',           // ALWAYS PENDING — never VERIFIED from student side
+      status: submissionStatus,
+      verified_at: submissionStatus === 'VERIFIED' ? new Date().toISOString() : null,
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString()
     })
@@ -222,15 +285,57 @@ export async function createSubmission({
     }
   }
 
-  // 2. Prepare envelope row for student_submissions (ensure PENDING for student inserts)
+  // 2. Perform document extraction & auto-verification for internship submissions
+  const finalDetails = { ...(details || {}) };
+  let submissionStatus = status || "PENDING";
+  let finalMarks = Number(awardedMarks || 0);
+
+  if (normalizedCat === "internship") {
+    try {
+      const docRef = proofFile || finalProofUrl || (Array.isArray(finalDetails.proofDocuments) ? finalDetails.proofDocuments[0] : null);
+      if (docRef) {
+        let extractedResult = finalDetails.document_extraction || finalDetails.extracted_fields;
+        if (!extractedResult) {
+          extractedResult = await extractInternshipDocument(docRef, { studentId });
+          finalDetails.document_extraction = extractedResult;
+          finalDetails.extracted_fields = extractedResult;
+        }
+
+        const autoResult = evaluateAndAutoScoreInternship(extractedResult, finalDetails);
+        if (autoResult.isAutoVerified) {
+          submissionStatus = "VERIFIED";
+          finalMarks = autoResult.calculatedMarks;
+          finalDetails.calculated_marks = autoResult.calculatedMarks;
+          finalDetails.ai_metadata = {
+            confidence: extractedResult.confidence,
+            warnings: extractedResult.warnings || [],
+            model: extractedResult.model_used || "gemini-1.5-flash",
+            is_auto_verified: true,
+            has_low_confidence: autoResult.hasLowConfidence,
+          };
+        } else {
+          finalDetails.ai_metadata = {
+            confidence: 0,
+            error: extractedResult.processing_error || "AI document processing failed",
+            is_auto_verified: false,
+          };
+        }
+      }
+    } catch (extErr) {
+      console.warn("Notice: createSubmission document extraction exception recorded:", extErr);
+    }
+  }
+
+  // 3. Prepare envelope row for student_submissions
   const submissionPayload = {
     student_id: studentId,
     category_id: normalizedCat,
     title: title || `${normalizedCat} submission`,
-    status: status || "PENDING",
-    awarded_marks: Number(awardedMarks || 0),
+    status: submissionStatus,
+    awarded_marks: finalMarks,
     proof_url: finalProofUrl,
-    details: details,
+    details: finalDetails,
+    verified_at: submissionStatus === "VERIFIED" ? new Date().toISOString() : null,
   };
 
   let savedSubmission = null;

@@ -1,5 +1,5 @@
 import React, { useRef, useState } from 'react';
-import { UploadCloud, FileText, ExternalLink, Trash2, Loader2, AlertCircle } from 'lucide-react';
+import { UploadCloud, FileText, ExternalLink, Trash2, Loader2, AlertCircle, Link as LinkIcon } from 'lucide-react';
 import { uploadProofDocument } from '../../services/proofService';
 
 export default function EvidenceUploader({
@@ -8,13 +8,42 @@ export default function EvidenceUploader({
   studentId = 'student-demo',
   title = 'SUPPORTING EVIDENCE',
   required = false,
-  helperText = 'PDF, JPG, PNG (Max 10 MB per file)',
+  helperText = 'PDF, JPG, PNG or Google Drive Link',
   uploadStatusText = '',
   setUploadStatusText,
+  accept = '.pdf,.png,.jpg,.jpeg,application/pdf,image/png,image/jpeg',
+  allowedTypes = ['application/pdf', 'image/jpeg', 'image/jpg', 'image/png'],
 }) {
   const fileInputRef = useRef(null);
   const [isUploading, setIsUploading] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
+  const [uploadMode, setUploadMode] = useState('file'); // 'file' | 'drive'
+  const [driveUrlInput, setDriveUrlInput] = useState('');
+
+  const handleAddDriveLink = (e) => {
+    e?.preventDefault();
+    const url = (driveUrlInput || '').trim();
+    if (!url) return;
+
+    if (!url.includes('drive.google.com') && !url.includes('docs.google.com')) {
+      setErrorMessage("Please enter a valid Google Drive file sharing link (e.g., https://drive.google.com/file/d/...)");
+      return;
+    }
+
+    setErrorMessage('');
+    const newDriveDoc = {
+      id: `drive-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`,
+      fileName: 'Google_Drive_Document.pdf',
+      fileSize: 'Google Drive Link',
+      fileType: 'application/pdf',
+      publicUrl: url,
+      driveUrl: url,
+      uploadedAt: new Date().toISOString(),
+    };
+
+    onDocumentsChange([...documents, newDriveDoc]);
+    setDriveUrlInput('');
+  };
 
   const formatFileSize = (bytes) => {
     if (!bytes || bytes === 0) return '0 KB';
@@ -35,25 +64,18 @@ export default function EvidenceUploader({
     if (!filesList || filesList.length === 0) return;
     const files = Array.from(filesList);
 
-    const allowedTypes = ['application/pdf', 'image/jpeg', 'image/jpg', 'image/png'];
     const validFiles = [];
     const errors = [];
 
     for (const file of files) {
       const nameLower = (file.name || '').toLowerCase();
-      const hasValidExt =
-        nameLower.endsWith('.pdf') ||
-        nameLower.endsWith('.jpg') ||
-        nameLower.endsWith('.jpeg') ||
-        nameLower.endsWith('.png');
-      const hasValidMime =
-        allowedTypes.includes(file.type) ||
-        file.type === '' ||
-        file.type.startsWith('image/') ||
-        file.type === 'application/pdf';
+      const extMatch = accept.split(',').some(ext => nameLower.endsWith(ext.trim().toLowerCase()));
+      const mimeMatch = allowedTypes.includes(file.type) || 
+                        (file.type === '' && extMatch) || 
+                        (file.type.startsWith('image/') && allowedTypes.includes('image/jpeg')); // generic image check fallback
 
-      if (!hasValidExt && !hasValidMime) {
-        errors.push(`"${file.name}": Only PDF, JPG, or PNG files are supported.`);
+      if (!extMatch && !mimeMatch) {
+        errors.push(`"${file.name}": Unsupported file type. Please follow the requested formats.`);
         continue;
       }
 
@@ -181,6 +203,60 @@ export default function EvidenceUploader({
         }}
         className="hidden"
       />
+
+      {/* Mode Selector Tabs (Upload Document vs Google Drive Link) */}
+      <div className="flex items-center gap-2 border-b pb-2" style={{ borderColor: 'var(--border)' }}>
+        <button
+          type="button"
+          onClick={() => setUploadMode('file')}
+          className={`text-xs font-semibold px-3 py-1.5 rounded-[var(--radius-sm)] border cursor-pointer transition-colors flex items-center gap-1.5 ${
+            uploadMode === 'file' ? 'bg-[var(--green-light)] text-[var(--green-text)] border-[var(--green)]' : 'bg-[var(--bg-card)] text-[var(--text-muted)] border-[var(--border)]'
+          }`}
+        >
+          <UploadCloud size={13} />
+          <span>Upload File</span>
+        </button>
+
+        <button
+          type="button"
+          onClick={() => setUploadMode('drive')}
+          className={`text-xs font-semibold px-3 py-1.5 rounded-[var(--radius-sm)] border cursor-pointer transition-colors flex items-center gap-1.5 ${
+            uploadMode === 'drive' ? 'bg-[var(--green-light)] text-[var(--green-text)] border-[var(--green)]' : 'bg-[var(--bg-card)] text-[var(--text-muted)] border-[var(--border)]'
+          }`}
+        >
+          <LinkIcon size={13} />
+          <span>Google Drive Link</span>
+        </button>
+      </div>
+
+      {/* Google Drive Link Input Box */}
+      {uploadMode === 'drive' && (
+        <form onSubmit={handleAddDriveLink} className="p-3.5 rounded-[var(--radius-lg)] border bg-[var(--bg-card)] space-y-2" style={{ borderColor: 'var(--border)' }}>
+          <label className="text-xs font-semibold block" style={{ color: 'var(--text-primary)' }}>
+            Google Drive Sharing Link <span className="text-[11px] font-normal" style={{ color: 'var(--text-muted)' }}>(Shared as 'Anyone with the link → Viewer')</span>
+          </label>
+          <div className="flex items-center gap-2">
+            <input
+              type="url"
+              value={driveUrlInput}
+              onChange={(e) => setDriveUrlInput(e.target.value)}
+              placeholder="https://drive.google.com/file/d/1A2B3C.../view?usp=sharing"
+              className="flex-1 px-3 py-2 rounded-[var(--radius-sm)] border text-xs focus:outline-none"
+              style={{
+                backgroundColor: 'var(--bg-input)',
+                borderColor: 'var(--border)',
+                color: 'var(--text-primary)',
+              }}
+            />
+            <button
+              type="submit"
+              className="px-3.5 py-2 rounded-[var(--radius-sm)] text-xs font-bold bg-emerald-500 text-black hover:bg-emerald-400 cursor-pointer transition-colors shrink-0"
+            >
+              Add Link
+            </button>
+          </div>
+        </form>
+      )}
 
       {/* Error Message */}
       {errorMessage && (

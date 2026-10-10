@@ -195,9 +195,15 @@ export function calculateCodingScore(badgesCount = 0, mediumHardSolved = 0) {
 // 4. INTERNSHIP EXPERIENCE (Max 10 Marks)
 export function calculateInternshipScore(internships = []) {
   const getItemScore = ({ tier, isPaid, durationMonths, duration }) => {
-    const dur = durationMonths !== undefined ? Number(durationMonths) : (duration !== undefined ? Number(duration) : undefined);
+    let dur = undefined;
+    if (durationMonths !== undefined && durationMonths !== null && durationMonths !== "") {
+      dur = Number(durationMonths);
+    } else if (duration !== undefined && duration !== null && duration !== "") {
+      dur = Number(duration);
+    }
+
     // Duration < 3 months overrides tier — short duration = 2m regardless of company
-    if (dur !== undefined && dur < 3) {
+    if (dur !== undefined && !isNaN(dur) && dur < 3) {
       return 2; // Short duration: 2m flat, paid bonus does NOT apply per PDF
     }
 
@@ -215,7 +221,7 @@ export function calculateInternshipScore(internships = []) {
     }
 
     // Paid bonus: +1 mark, but total per internship cannot exceed 5m
-    const paidBonus = isPaid ? 1 : 0;
+    const paidBonus = isPaid === true || isPaid === "Paid" ? 1 : 0;
     return Math.min(tierBase + paidBonus, 5);
   };
 
