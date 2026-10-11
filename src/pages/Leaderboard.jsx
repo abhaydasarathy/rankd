@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
-import { Trophy, Search, Medal, Award, X, Loader2, AlertCircle, RefreshCw } from 'lucide-react';
+import { Trophy, Search, Medal, Award, X, Loader2, AlertCircle, RefreshCw, Download } from 'lucide-react';
 import { supabase } from '../lib/supabaseClient';
 import { fetchLeaderboard } from '../services/leaderboardService';
 import { useTilt } from '../hooks/useTilt';
@@ -301,9 +301,65 @@ export default function Leaderboard({
     return list.slice(0, 3);
   }, [allStudents, department]);
 
-  const top1 = podiumStudents[0];
-  const top2 = podiumStudents[1];
-  const top3 = podiumStudents[2];
+  // ── CSV Export Handler for Faculty Ranking Export ──
+  const handleDownloadCSV = () => {
+    if (!filteredStudents || filteredStudents.length === 0) return;
+
+    const headers = [
+      'Rank',
+      'Student Name',
+      'Registration Number',
+      'Department',
+      'Section',
+      'CGPA',
+      'Total Verified Score',
+      'Academics Score',
+      'GitHub Score',
+      'Coding Score',
+      'Internship Score',
+      'Skillset Score',
+      'Projects Score',
+      'FullStack Score',
+      'Hackathons Score',
+      'InHouse Score',
+      'Membership Score',
+      'Assessments Score',
+    ];
+
+    const rows = filteredStudents.map((st, index) => {
+      const rank = Number(st.rank) || (index + 1);
+      const score = Number(st.total_verified_score ?? st.totalVerifiedScore ?? 0);
+      return [
+        rank,
+        `"${st.full_name || st.name || 'SRM Student'}"`,
+        `"${st.reg_no || st.regNo || ''}"`,
+        `"${st.department || 'CSE'}"`,
+        `"${st.section || 'Sec A'}"`,
+        st.cgpa || 0,
+        score,
+        st.academics_score || 0,
+        st.github_score || 0,
+        st.coding_score || 0,
+        st.internship_score || 0,
+        st.skillset_score || 0,
+        st.projects_score || 0,
+        st.fullstack_score || 0,
+        st.hackathons_score || 0,
+        st.inhouse_score || 0,
+        st.membership_score || 0,
+        st.assessments_score || 0,
+      ].join(',');
+    });
+
+    const csvContent = 'data:text/csv;charset=utf-8,' + [headers.join(','), ...rows].join('\n');
+    const encodedUri = encodeURI(csvContent);
+    const link = document.createElement('a');
+    link.setAttribute('href', encodedUri);
+    link.setAttribute('download', `SRMIST_Placement_Ranking_${new Date().toISOString().slice(0, 10)}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
 
   return (
     <div className="page-content w-full p-4 sm:p-6 lg:p-7 min-w-0">
@@ -339,8 +395,8 @@ export default function Leaderboard({
           </p>
         </div>
 
-        {/* Filters */}
-        <div className="flex items-center gap-2.5">
+        {/* Filters & Export */}
+        <div className="flex items-center gap-2.5 flex-wrap">
           <div
             className="search-bar flex items-center gap-2 border px-3 py-1.5"
             style={{
@@ -378,6 +434,21 @@ export default function Leaderboard({
               </option>
             ))}
           </select>
+
+          <button
+            type="button"
+            onClick={handleDownloadCSV}
+            title="Download Ranking CSV"
+            className="px-3 py-1.5 text-xs font-semibold rounded border cursor-pointer inline-flex items-center gap-1.5 hover:opacity-90 transition-opacity"
+            style={{
+              backgroundColor: 'var(--green-light)',
+              borderColor: 'var(--green)',
+              color: 'var(--green-text)',
+            }}
+          >
+            <Download size={13} />
+            <span>Export CSV</span>
+          </button>
 
           <button
             type="button"

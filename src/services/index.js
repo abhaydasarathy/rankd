@@ -7,4 +7,4 @@ export * from "./leaderboardService.js";
 export * from "./membershipVerificationService.js";
 export * from "./githubService.js";
 export * from "./messageService.js";
-
+export * from "./documentExtractionService.js";
