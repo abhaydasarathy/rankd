@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { Home, BarChart3, User, Trophy, X, Clock, Users } from 'lucide-react';
+import { Home, BarChart3, User, Trophy, X, Clock, Users, ClipboardList } from 'lucide-react';
 import { RankdSymbol } from './RankdLogo';
 import { useAuth } from '../context/AuthContext';
 import { supabase } from '../lib/supabaseClient';
@@ -108,6 +108,7 @@ export default function Sidebar({
         { id: 'pending', path: '/faculty/pending', label: 'Pending Queue', icon: Clock },
         { id: 'students', path: '/faculty/students', label: 'My Students', icon: Users },
         { id: 'leaderboard', path: '/leaderboard', label: 'Leaderboard', icon: Trophy },
+        { id: 'attendance', path: '/attendance', label: 'Attendance', icon: ClipboardList },
         { id: 'profile', path: '/profile', label: 'My Profile', icon: User },
       ]
     : [

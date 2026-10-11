@@ -13,6 +13,7 @@ import Profile from './pages/Profile';
 import FacultyPendingQueue from './pages/faculty/FacultyPendingQueue';
 import FacultyStudentList from './pages/faculty/FacultyStudentList';
 import FacultyStudentInspect from './pages/faculty/FacultyStudentInspect';
+import Attendance from './pages/Attendance';
 import CategorySheet from './components/CategorySheet';
 import AcademicsWorkspace from './components/AcademicsWorkspace';
 import {
@@ -472,6 +473,7 @@ function PortalShell() {
                   />
                 }
               />
+              <Route path="/attendance" element={<Attendance />} />
               <Route
                 path="/profile"
                 element={

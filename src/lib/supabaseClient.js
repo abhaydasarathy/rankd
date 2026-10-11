@@ -13,15 +13,39 @@ const getEnv = (key) => {
   return "";
 };
 
-const supabaseUrl = getEnv("VITE_SUPABASE_URL") || "https://edrnoswnadjcsftekplu.supabase.co";
-const supabaseAnonKey = getEnv("VITE_SUPABASE_ANON_KEY") || "sb_publishable_ftDN7kSv57CKxDF4HwjcDg_VYchfVF6";
+// Detect placeholder / unfilled template values — fall through to hardcoded project fallbacks
+const isPlaceholder = (val) =>
+  !val ||
+  val.includes("your-project-ref") ||
+  val.includes("your-supabase") ||
+  val.toLowerCase().includes("placeholder") ||
+  val === "YOUR_SUPABASE_ANON_KEY_HERE";
 
-export const supabase = createClient(
-  supabaseUrl,
-  supabaseAnonKey && supabaseAnonKey !== "YOUR_SUPABASE_ANON_KEY_HERE"
-    ? supabaseAnonKey
-    : "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.placeholder_key"
-);
+const rawUrl = getEnv("VITE_SUPABASE_URL");
+const rawKey = getEnv("VITE_SUPABASE_ANON_KEY");
+
+const FALLBACK_URL = "https://edrnoswnadjcsftekplu.supabase.co";
+const FALLBACK_KEY = "sb_publishable_ftDN7kSv57CKxDF4HwjcDg_VYchfVF6";
+
+const supabaseUrl = isPlaceholder(rawUrl) ? FALLBACK_URL : rawUrl;
+const supabaseAnonKey = isPlaceholder(rawKey) ? FALLBACK_KEY : rawKey;
+
+// Wrap in try/catch — an invalid URL must never crash the entire app
+let _client;
+try {
+  _client = createClient(supabaseUrl, supabaseAnonKey);
+} catch (e) {
+  console.warn("[rankd] Supabase init failed, retrying with fallback credentials:", e.message);
+  try {
+    _client = createClient(FALLBACK_URL, FALLBACK_KEY);
+  } catch (e2) {
+    console.error("[rankd] Supabase could not be initialised. DB features will be unavailable.");
+    // Return a stub so the rest of the app doesn't blow up on import
+    _client = { auth: { getSession: async () => ({ data: {}, error: null }), onAuthStateChange: () => ({ data: { subscription: { unsubscribe: () => {} } } }) }, from: () => ({ select: async () => ({ data: [], error: null }), insert: async () => ({ data: null, error: null }), update: async () => ({ data: null, error: null }), eq: () => ({ select: async () => ({ data: [], error: null }) }) }), channel: () => ({ on: () => ({ subscribe: () => {} }) }), removeChannel: () => {}, storage: { from: () => ({ upload: async () => ({ data: null, error: null }), getPublicUrl: () => ({ data: { publicUrl: '' } }) }) } };
+  }
+}
+
+export const supabase = _client;
 
 /**
  * Check if active live Supabase key is configured
